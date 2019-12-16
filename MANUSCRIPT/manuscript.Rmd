@@ -1,0 +1,94 @@
+---
+title: Descriptive Paper Title
+
+# to produce blinded version set to 1
+blinded: 0
+
+authors: 
+- name: Mathew E. Hauer
+  thanks:  Thanks y'all!
+  affiliation: Department of Sociology, Florida State University
+  
+- name: Scientist 2
+  affiliation: Department of Department, Random State University
+
+keywords:
+- keyword
+- keyword
+- keyword
+
+abstract: Lorem Ipsum.
+  
+bibliography: mybibfile
+output: rticles::asa_article
+# csl: LATEX/demography.csl
+header-includes:
+  - \usepackage{amsmath}
+  - \usepackage{amsfonts}
+  - \usepackage{booktabs}
+  - \usepackage{makecell}
+  - \usepackage[usenames, dvipsnames]{color}
+  - \usepackage{multirow}
+  - \usepackage{comment}
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage{threeparttablex}
+  - \usepackage[normalem]{ulem}
+  - \usepackage{xcolor}
+  - \newcommand{\beginsupplement}{\setcounter{table}{0} \renewcommand{\thetable}{S\arabic{table}}\setcounter{figure}{0} \renewcommand{\thefigure}{S\arabic{figure}}}
+---
+
+\newpage
+
+```{r setup, include=FALSE}
+rm( list=ls() )
+knitr::opts_chunk$set(echo  = TRUE)
+# knitr::opts_chunk$set(cache = TRUE)
+# read_chunk loads script files and
+# creates labels so that they can be 
+# used later in the program
+#
+# each script file starts with a line
+# like 
+#   ## @knitr libraries
+# that creates a label matching the
+# script's filename
+library(knitr)
+read_chunk('../R/SCRIPTS/000-Libraries.R')
+```
+
+```{r libraries, include=FALSE}
+```
+
+
+# Introduction
+
+This is an introduction. This is a citation [@foxBackNoAnalogFuture2007]
+
+
+You can also embed plots (**\autoref{fig-pressure}**), for example:
+
+```{r pressure, echo=FALSE, message = FALSE, warning = FALSE, dev = c("png", "pdf"),dpi=300,fig.cap= paste("**Title of the figure.** Solid dots show blah blah blah. \\label{fig-pressure}")}
+
+plot(pressure)
+```
+
+And you can embed tables (**\autoref{error-table}**):
+
+```{r cars, echo=FALSE, warning=FALSE, message = FALSE, results='asis'}
+# comes from 'assemble-all-error-summaries.R`
+
+z<-summary(cars)
+kable(z, "latex", booktabs = T, caption = "\\label{error-table}\\textbf{Summary statistics for cars.} APE is the Description here.") %>%
+  kable_styling(latex_options = c("scale_down")) %>%
+  collapse_rows(columns = 1, latex_hline = "major", valign = "middle") 
+```
+
+\newpage

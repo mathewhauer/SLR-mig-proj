@@ -1,0 +1,25 @@
+---
+title: "Replication"
+output: html_document
+---
+
+All scripts required to reproduce the figures and tables in *PAPER TITLE* are contained below.
+
+```{r echo=FALSE}
+rm(list=ls())
+library(knitr)
+read_chunk('../R/SCRIPTS/000-Libraries.R')
+
+```
+# Libraries Required
+
+```{r libraries, echo=TRUE, message = FALSE, warning = FALSE, cache=TRUE}
+```
+
+# Figure 1
+
+```{r pressure, echo=TRUE, message = FALSE, warning = FALSE, cache=TRUE, dev = c("png", "pdf"),dpi=300,fig.cap= paste("**Title of the figure.** Solid dots show blah blah blah. \\label{fig-pressure}")}
+
+plot(pressure)
+```
+
