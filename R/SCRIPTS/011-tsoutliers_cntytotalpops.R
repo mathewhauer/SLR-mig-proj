@@ -112,9 +112,12 @@ timefilt <- 1980
 # popdrops <- filter(df, coefhat <0) %>%
 ## We are interested in population drops so we're looking for instances where the counterfactual is
 ## above the true value AND where the coefficients are negative (indicating decline).
-popdrops <- filter(df, yadj > y, coefhat <0) %>% 
-  mutate(YEAR = time-1, # the time index is off by 1 year.
-         perdrop = y / yadj) # We calculate the percentage drop in the population
+# popdrops <- filter(df, yadj > y, coefhat <0) %>% 
+#   mutate(YEAR = time-1, # the time index is off by 1 year.
+#          perdrop = y / yadj) # We calculate the percentage drop in the population
+# write_csv(popdrops, "./R/DATA-PROCESSED/anomaliesdat.csv")
+
+popdrops <- read_csv("./R/DATA-PROCESSED/anomaliesdat.csv")
 # Generating the list of counties with population drops that are greater than 1980 and a population loss.
 a <- popdrops %>%  
   filter(time >= timefilt,
@@ -127,7 +130,8 @@ a <- popdrops %>%
 # Joining our pop drops with the underlying population data.
 a <- left_join(popdrops, K05_tot) %>%
   left_join(., K05_tot, by = c("GEOID", time = "YEAR")) %>%
-  mutate(perdrop = POPULATION.y/POPULATION.x) %>% # this calculates the percentage drop
+  # mutate(perdrop = POPULATION.y/POPULATION.x) %>% # this calculates the percentage drop
+  mutate(perdrop = y/yadj) %>% # this calculates the percentage drop
   filter(time >= timefilt,
        perdrop <1)
 
@@ -228,54 +232,62 @@ for(i in 1:17){
                        c = fit$coefficients[3],
                        # d = fit$coefficients[4],
     rsq = summary(fit)$adj.r.squared,
-    n = nrow(z))
+    n = nrow(z),
+    sex = 1)
   ## Repeating the previous code chunk but with women.
   z <- filter(CCRs3, groups == paste0("ccr",i),
               SEX == 2)
   (fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2)))
   coeffs3 <- data.frame(groups = paste0("ccr",i),
-                        a2 = fit$coefficients[1],
-                        b2 = fit$coefficients[2],
-                        c2 = fit$coefficients[3],
+                        a = fit$coefficients[1],
+                        b = fit$coefficients[2],
+                        c = fit$coefficients[3],
                         # d = fit$coefficients[4],
-                        rsq2 = summary(fit)$adj.r.squared,
-                        n2 = nrow(z))
-  coeffs2 <- cbind(coeffs2, coeffs3)
+                        rsq = summary(fit)$adj.r.squared,
+                        n = nrow(z),
+                        sex = 2)
+  coeffs2 <- rbind(coeffs2, coeffs3)
   coeffs <- rbind(coeffs, coeffs2)
 }
-z <- filter(CCRs3, groups == "ccr5",
-            !GEOID %in% c("06053", "13031", "13259", "26069", "37161",
-                          "47097", "51147"))
 
-summary(fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2)))
-# summary(fit)$adj.r.squared
-# plot(log(z$testval), log(z$perdrop))
-
+# write_csv(coeffs, "./R/DATA-PROCESSED/modelcoeffs.csv")
+# 
+# z <- filter(CCRs3, groups == "ccr5",
+#             !GEOID %in% c("06053", "13031", "13259", "26069", "37161",
+#                           "47097", "51147"))
+# 
+# summary(fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2)))
+# # summary(fit)$adj.r.squared
+# # plot(log(z$testval), log(z$perdrop))
+# 
 a<-data.frame(y =z$testval, x=z$perdrop)
-
-# pred.data = expand.grid(wt = seq(min(a$x), max(a$x), length=108))
-# pred.data$mpg = predict(fit, newdata=pred.data)
-
+# 
+# # pred.data = expand.grid(wt = seq(min(a$x), max(a$x), length=108))
+# # pred.data$mpg = predict(fit, newdata=pred.data)
+# 
+displacepercent <- 0.6
+coeffs %>%
+  mutate(reduce = exp(b * log(displacepercent) + c * (log(displacepercent)^2)))
 
 ggplot(data=a, aes(x= x, y =y)) +
   geom_point() +
   stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
   theme_bw()
-
-
-
-rates <- CCRs3$testval
-M <- matrix(log(rates), 108, 17, byrow=TRUE)
-a <- colMeans(M)
-for(j in 1:17) M[,j] <- M[,j] - a[j]
-d <- svd(M)
-b <- d$v/sum(d$v)
-k <- d$u * sum(d$v) * d$d[1:3]
-
-z <- filter(CCRs3, GEOID == "05093") %>%
-  mutate(fit = c(exp(a + b * k[50,1:17])))
-
-ggplot(z, aes(x=groups, y=testval, color=SEX)) + geom_point() + 
-     geom_line(aes(x=groups, y=fit,color=SEX, group =1))+
-  scale_y_continuous(limits = c(0,1.1))
-     # ggtitle("Lee-Carter Fits for 1933 and 1987")
+# 
+# 
+# 
+# rates <- CCRs3$testval
+# M <- matrix(log(rates), 108, 17, byrow=TRUE)
+# a <- colMeans(M)
+# for(j in 1:17) M[,j] <- M[,j] - a[j]
+# d <- svd(M)
+# b <- d$v/sum(d$v)
+# k <- d$u * sum(d$v) * d$d[1:3]
+# 
+# z <- filter(CCRs3, GEOID == "05093") %>%
+#   mutate(fit = c(exp(a + b * k[50,1:17])))
+# 
+# ggplot(z, aes(x=groups, y=testval, color=SEX)) + geom_point() + 
+#      geom_line(aes(x=groups, y=fit,color=SEX, group =1))+
+#   scale_y_continuous(limits = c(0,1.1))
+#      # ggtitle("Lee-Carter Fits for 1933 and 1987")

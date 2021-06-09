@@ -1,3 +1,5 @@
+
+
 anomalies <- read_csv("./R/DATA-PROCESSED/anomalies.csv")
 
 cnty_years <- c(paste(anomalies$GEOID, anomalies$YEAR, sep = "_"),
