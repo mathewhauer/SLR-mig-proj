@@ -1,4 +1,4 @@
-
+source("./R/SCRIPTS/000-Libraries.R")
 # This will download a list of FIPS codes from online.
 fipslist <- read_csv(file="https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt", col_names = FALSE) %>%
   mutate(GEOID = paste0(X2, X3)) %>%
@@ -55,20 +55,30 @@ K05_tot <- K05_pop %>%
 
 K05_pop$GEOID <- paste0(K05_pop$STATE, K05_pop$COUNTY) # SETTING THE 5-DIGIT FIPS CODE
 K05_tot$GEOID <- paste0(K05_tot$STATE, K05_tot$COUNTY) # SETTING THE 5-DIGIT FIPS CODE
+
+# Getting a unique list of counties to loop over.
 cnties <- unique(K05_pop$GEOID)
-df <- data.frame()
-sigma <-5
+df <- data.frame() # the blank data frame to hold the results
+sigma <-5 # We set this threshold for our outliers
+
+### This will loop over each of the counties and search for outliers based on sigma.
 for(this.county in cnties){
   tryCatch({
   print(this.county)
+    ## We first set the output data frame
   df2<- setNames(data.frame(matrix(ncol = 5, nrow = 0)), c("type", "ind", "time", "coefhat", "tstat"))
-  dat2 <- filter(K05_tot, GEOID == this.county)
-  dat3 <- ts(dat2$POPULATION, start = c(min(dat2$YEAR),1), frequency = 1)
+  
+  dat2 <- filter(K05_tot, GEOID == this.county) # getting just our data for this particular county
+  dat3 <- ts(dat2$POPULATION, start = c(min(dat2$YEAR),1), frequency = 1) # converting the data to a time series
 
+  # This is the function that detects the outliers. We're searching for additive outliers, level shift
+  # outliers, and temporary change outliers.
 (outlier.county <- tsoutliers::tso(dat3,types = c("AO","LS","TC"),cval = sigma, maxit.iloop=10))
 plot(outlier.county)
+
+# Not all counties contain outliers. So we must create a special condition if there is no outliers.
 if(!is.null(outlier.county$times)){
-  
+  # we select out the true value (y), the adjusted counterfactual (yadj), and the time index (time)
   df2<- outlier.county$outliers
   altseries <- data.frame(y= outlier.county$y,
                           yadj=outlier.county$yadj,
@@ -85,7 +95,7 @@ if(!is.null(outlier.county$times)){
                                yadj = NA))
   
 }
-
+# Making sure we keep the county.
 df2$GEOID <- paste0(this.county)
 
 df <- bind_rows(df, df2)
@@ -96,33 +106,44 @@ rm(dat3)
 
 }
 #####
+
+## The census estimates are unstable before 1980. We look only at outliers after 1980.
 timefilt <- 1980
 # popdrops <- filter(df, coefhat <0) %>%
-  popdrops <- filter(df, yadj > y, coefhat <0) %>%
-  mutate(YEAR = time-1,
-         perdrop = y / yadj)
+## We are interested in population drops so we're looking for instances where the counterfactual is
+## above the true value AND where the coefficients are negative (indicating decline).
+popdrops <- filter(df, yadj > y, coefhat <0) %>% 
+  mutate(YEAR = time-1, # the time index is off by 1 year.
+         perdrop = y / yadj) # We calculate the percentage drop in the population
+# Generating the list of counties with population drops that are greater than 1980 and a population loss.
 a <- popdrops %>%  
   filter(time >= timefilt,
-         perdrop <1 & perdrop >=0)
+         perdrop <1) %>%
+  left_join(., fipslist)
 
-a3 <- left_join(a, fipslist)
-
+## Saving the output.
 # write_csv(a3, "./R/DATA-PROCESSED/anomalies.csv")
 
+# Joining our pop drops with the underlying population data.
 a <- left_join(popdrops, K05_tot) %>%
   left_join(., K05_tot, by = c("GEOID", time = "YEAR")) %>%
-  mutate(perdrop = POPULATION.y/POPULATION.x) %>%
+  mutate(perdrop = POPULATION.y/POPULATION.x) %>% # this calculates the percentage drop
   filter(time >= timefilt,
        perdrop <1)
 
+# Essentially doubling the database so we have a duplication for men and women.
 a1 <- a %>% dplyr::select(GEOID, YEAR=time, perdrop)
 a2 <- a1 %>% mutate(YEAR = YEAR-1) %>%
   bind_rows(., a1)
 
+## We have to create a unique id for each county-year decline.
 a1$uniqueid = paste(a1$GEOID, a1$YEAR, sep = "_")
 
+## We'll calculate CCRs for the group of counties with pop declines.
 CCRs<- K05_pop %>%
   filter(GEOID %in% a$GEOID)
+
+## This adds "X" to start of the agegroup, converts some data formats, and goes from tall to wide.
 CCRs <- CCRs %>%
   ungroup() %>%
   mutate(AGE = paste0("X", str_pad(AGE, 2, pad ="0")),
@@ -130,7 +151,7 @@ CCRs <- CCRs %>%
          POPULATION = as.numeric(POPULATION)) %>%
   group_by(STATE, COUNTY, GEOID, YEAR, SEX) %>%
   spread(AGE, POPULATION)
-
+## We have to transform some of the data to ensure null values are 0.
 if(is.null(CCRs$X01)){CCRs$X01=0}else{CCRs$X01=CCRs$X01}
 if(is.null(CCRs$X02)){CCRs$X02=0}else{CCRs$X02=CCRs$X02}
 if(is.null(CCRs$X03)){CCRs$X03=0}else{CCRs$X03=CCRs$X03}
@@ -149,6 +170,8 @@ if(is.null(CCRs$X15)){CCRs$X15=0}else{CCRs$X15=CCRs$X15}
 if(is.null(CCRs$X16)){CCRs$X16=0}else{CCRs$X16=CCRs$X16}
 if(is.null(CCRs$X17)){CCRs$X17=0}else{CCRs$X17=CCRs$X17}
 if(is.null(CCRs$X18)){CCRs$X18=0}else{CCRs$X18=CCRs$X18}
+
+## This will calculate the CCRs for each age group for each year.
 CCRs2<- CCRs %>%
   arrange(GEOID, SEX, YEAR) %>%
   ungroup() %>%
@@ -171,32 +194,34 @@ CCRs2<- CCRs %>%
          ccr16 = X17 / lag(X16, 5),
          ccr17 = X18 / (lag(X17, 5) + lag(X18, 5))
          )
-
+## We then join our CCRs for each county-age-sex group with the county-level population decline.
 CCRs3 <- left_join(CCRs2, a2) %>%
   na.omit() %>%
-  dplyr::select(-X01:-X18) %>%
+  dplyr::select(-X01:-X18) %>% # deselecting the raw population numbers
   group_by(SEX, GEOID, YEAR) %>%
-  pivot_longer(cols = starts_with("ccr"), names_to = "groups", values_to = "CCR") %>%
+  pivot_longer(cols = starts_with("ccr"), names_to = "groups", values_to = "CCR") %>% # going from wide to long.
   group_by(SEX, GEOID, groups) %>%
-  mutate(testval = CCR / lag(CCR),
+  mutate(testval = CCR / lag(CCR), # This gives us the actual change in the CCR
          uniqueid = paste(GEOID, YEAR, sep = "_")) %>%
   filter(testval != 1,
-         uniqueid %in% a1$uniqueid) %>%
+         uniqueid %in% a1$uniqueid) %>% # filtering out the non-outlier years.
   na.omit() %>%
   dplyr::select(-CCR) %>%
-  pivot_wider(names_from = groups, values_from = testval) %>%
+  pivot_wider(names_from = groups, values_from = testval) %>% # going back to wide.
   force() 
-CCRs3[is.na(CCRs3)] <- 1
+CCRs3[is.na(CCRs3)] <- 1 # setting NA values to 1, suggesting there is no change.
 CCRs3 <- CCRs3 %>%
   pivot_longer(cols = starts_with("ccr"), names_to = "groups", values_to = "testval")
 
 
-#####
+##### This will calculate the individual coefficients for each age/sex group.
 coeffs <- data.frame()[1:17, ]
 for(i in 1:17){
-  z <- filter(CCRs3, groups == paste0("ccr",i),
-              SEX == 1)
+  z <- filter(CCRs3, groups == paste0("ccr",i), # filtering to age group i and men
+              SEX == 1)  
+  ## calculating a linear model based on a 2-order polynomial of the log of the population drop
   (fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2)))
+  ## gathering our results.
   coeffs2 <- data.frame(groups = paste0("ccr",i),
     a = fit$coefficients[1],
                        b = fit$coefficients[2],
@@ -204,7 +229,7 @@ for(i in 1:17){
                        # d = fit$coefficients[4],
     rsq = summary(fit)$adj.r.squared,
     n = nrow(z))
-  
+  ## Repeating the previous code chunk but with women.
   z <- filter(CCRs3, groups == paste0("ccr",i),
               SEX == 2)
   (fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2)))
@@ -221,6 +246,7 @@ for(i in 1:17){
 z <- filter(CCRs3, groups == "ccr5",
             !GEOID %in% c("06053", "13031", "13259", "26069", "37161",
                           "47097", "51147"))
+
 summary(fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2)))
 # summary(fit)$adj.r.squared
 # plot(log(z$testval), log(z$perdrop))
