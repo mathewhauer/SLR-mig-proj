@@ -59,7 +59,7 @@ K05_tot$GEOID <- paste0(K05_tot$STATE, K05_tot$COUNTY) # SETTING THE 5-DIGIT FIP
 # Getting a unique list of counties to loop over.
 cnties <- unique(K05_pop$GEOID)
 df <- data.frame() # the blank data frame to hold the results
-sigma <-5 # We set this threshold for our outliers
+sigma <-4 # We set this threshold for our outliers
 
 ### This will loop over each of the counties and search for outliers based on sigma.
 for(this.county in cnties){
@@ -112,9 +112,9 @@ timefilt <- 1980
 # popdrops <- filter(df, coefhat <0) %>%
 ## We are interested in population drops so we're looking for instances where the counterfactual is
 ## above the true value AND where the coefficients are negative (indicating decline).
-# popdrops <- filter(df, yadj > y, coefhat <0) %>% 
-#   mutate(YEAR = time-1, # the time index is off by 1 year.
-#          perdrop = y / yadj) # We calculate the percentage drop in the population
+popdrops <- filter(df, yadj > y, coefhat <0) %>%
+  mutate(YEAR = time-1, # the time index is off by 1 year.
+         perdrop = y / yadj) # We calculate the percentage drop in the population
 # write_csv(popdrops, "./R/DATA-PROCESSED/anomaliesdat.csv")
 
 popdrops <- read_csv("./R/DATA-PROCESSED/anomaliesdat.csv")
@@ -155,6 +155,7 @@ CCRs <- CCRs %>%
          POPULATION = as.numeric(POPULATION)) %>%
   group_by(STATE, COUNTY, GEOID, YEAR, SEX) %>%
   spread(AGE, POPULATION)
+CCRs[is.na(CCRs)] <- 0
 ## We have to transform some of the data to ensure null values are 0.
 if(is.null(CCRs$X01)){CCRs$X01=0}else{CCRs$X01=CCRs$X01}
 if(is.null(CCRs$X02)){CCRs$X02=0}else{CCRs$X02=CCRs$X02}
@@ -199,7 +200,7 @@ CCRs2<- CCRs %>%
          ccr17 = X18 / (lag(X17, 5) + lag(X18, 5))
          )
 ## We then join our CCRs for each county-age-sex group with the county-level population decline.
-CCRs3 <- left_join(CCRs2, a2) %>%
+CCRs4 <- left_join(CCRs2, a2) %>%
   na.omit() %>%
   dplyr::select(-X01:-X18) %>% # deselecting the raw population numbers
   group_by(SEX, GEOID, YEAR) %>%
@@ -215,8 +216,10 @@ CCRs3 <- left_join(CCRs2, a2) %>%
   force() 
 CCRs3[is.na(CCRs3)] <- 1 # setting NA values to 1, suggesting there is no change.
 CCRs3 <- CCRs3 %>%
-  pivot_longer(cols = starts_with("ccr"), names_to = "groups", values_to = "testval")
+  pivot_longer(cols = starts_with("ccr"), names_to = "groups", values_to = "testval") %>%
+  filter(!GEOID %in% c("26069", "37161", "41065", "47097"))
 
+write_csv(CCRs3, "./R/DATA-PROCESSED/CCRs.csv")
 
 ##### This will calculate the individual coefficients for each age/sex group.
 coeffs <- data.frame()[1:17, ]
@@ -224,7 +227,8 @@ for(i in 1:17){
   z <- filter(CCRs3, groups == paste0("ccr",i), # filtering to age group i and men
               SEX == 1)  
   ## calculating a linear model based on a 2-order polynomial of the log of the population drop
-  (fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2)))
+  # summary((fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2))))
+  summary(fit <- lm(z$testval ~ z$perdrop))
   ## gathering our results.
   coeffs2 <- data.frame(groups = paste0("ccr",i),
     a = fit$coefficients[1],
@@ -237,7 +241,8 @@ for(i in 1:17){
   ## Repeating the previous code chunk but with women.
   z <- filter(CCRs3, groups == paste0("ccr",i),
               SEX == 2)
-  (fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2)))
+  # (fit <- lm(log(z$testval) ~ poly(log(z$perdrop),2)))
+  summary(fit <- lm(z$testval ~ z$perdrop))
   coeffs3 <- data.frame(groups = paste0("ccr",i),
                         a = fit$coefficients[1],
                         b = fit$coefficients[2],
@@ -252,6 +257,7 @@ for(i in 1:17){
 
 # write_csv(coeffs, "./R/DATA-PROCESSED/modelcoeffs.csv")
 # 
+
 # z <- filter(CCRs3, groups == "ccr5",
 #             !GEOID %in% c("06053", "13031", "13259", "26069", "37161",
 #                           "47097", "51147"))
@@ -260,6 +266,9 @@ for(i in 1:17){
 # # summary(fit)$adj.r.squared
 # # plot(log(z$testval), log(z$perdrop))
 # 
+
+z <- filter(CCRs3, groups == paste0("ccr",i)) # filtering to age group i and men
+            # SEX == 1)  
 a<-data.frame(y =z$testval, x=z$perdrop)
 # 
 # # pred.data = expand.grid(wt = seq(min(a$x), max(a$x), length=108))
@@ -269,10 +278,48 @@ displacepercent <- 0.6
 coeffs %>%
   mutate(reduce = exp(b * log(displacepercent) + c * (log(displacepercent)^2)))
 
+makemultiplot <- function(i, title){
+
+z <- filter(CCRs3, groups == paste0("ccr",i)) # filtering to age group i and men
+# SEX == 1)  
+a<-data.frame(y =z$testval, x=z$perdrop)
 ggplot(data=a, aes(x= x, y =y)) +
   geom_point() +
   stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
-  theme_bw()
+  theme_bw() +
+  labs(x = "% Change in Population",
+       y = "% Change in CCR",
+       title = paste0(title))
+# return(a_1)
+}
+a_1 <- makemultiplot(1, "Age 0-4") +
+  theme(axis.title.x=element_blank(),
+        # axis.text.x=element_blank(),
+        # axis.ticks.x=element_blank(),
+        axis.title.y=element_blank())
+a_2 <- makemultiplot(4, "Age 15-19") +
+  theme(axis.title.x=element_blank(),
+        # axis.text.x=element_blank(),
+        # axis.ticks.x=element_blank(),
+        axis.title.y=element_blank())
+a_3 <- makemultiplot(7, "Age 30-34") +
+  theme(axis.title.x=element_blank(),
+        # axis.text.x=element_blank(),
+        # axis.ticks.x=element_blank()
+        )
+a_4 <- makemultiplot(10, "Age 45-49") +
+  theme(axis.title.x=element_blank(),
+        # axis.text.x=element_blank(),
+        # axis.ticks.x=element_blank(),
+        axis.title.y=element_blank())
+a_5 <- makemultiplot(13, "Age 60-64") +
+theme(axis.title.y=element_blank())
+a_6 <- makemultiplot(17, "Age 80+") +
+  theme(axis.title.y=element_blank())
+
+plot_grid(a_1, a_2, a_3, a_4, a_5, a_6,
+          ncol=2, align = "hv")
+
 # 
 # 
 # 

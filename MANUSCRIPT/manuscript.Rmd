@@ -1,5 +1,6 @@
 ---
-title: Descriptive Paper Title
+title: | 
+  How will we move: Modeling Climate-driven Age-specific Displacement Migration
 
 # to produce blinded version set to 1
 blinded: 0
@@ -9,15 +10,15 @@ authors:
   thanks:  Thanks y'all!
   affiliation: Department of Sociology, Florida State University
   
-- name: Scientist 2
-  affiliation: Department of Department, Random State University
+- name: Sunshine Jacobs
+  affiliation: Department of Sociology, Florida State University
 
 keywords:
-- keyword
-- keyword
-- keyword
+- Climate Change
+- Human Migration
+- Demography
 
-abstract: Lorem Ipsum.
+abstract: Global population projections show widespread ageing by century’s end. The well-known relationship between age and migration propensity suggests more youthful populations are more likely to migrate than older populations. Yet relatively little research explores the important implication of ageing on human mobility in a changing climate, most likely driven by a paucity of migration data to comprehensively investigate the age structure of environmental migration. Here, we propose a displacement migration model to estimate age-specific migration probabilities. We combine a statistical outlier detection algorithm to first identify major environmental displacement events in US counties since 1980. Our findings suggests populations under age 60 are most likely to migrate after an environmental event, increasing with the size of displacement, validating many findings in the migration literature. We then build a flexible one-dimensional, age-specific displacement model based on these findings with estimation errors suggesting reasonable accuracy. Our proposed displacement model can be readily deployed to model prospective climate migration.
   
 bibliography: mybibfile
 output: rticles::asa_article
@@ -67,28 +68,253 @@ read_chunk('../R/SCRIPTS/000-Libraries.R')
 ```{r libraries, include=FALSE}
 ```
 
+```{r , include =FALSE}
+fipslist <- read_csv(file="https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt", col_names = FALSE) %>%
+  mutate(GEOID = paste0(X2, X3)) %>%
+  dplyr::rename(state = X1,
+                STATEID = X2,
+                CNTYID = X3,
+                NAME = X4) %>%
+  filter(!STATEID %in% c("60", "66", "69", "72", "74", "78")) # filtering out the outerlying areas.
+
+popdrops <- read_csv("../R/DATA-PROCESSED/anomaliesdat.csv")
+a <- popdrops %>%  
+  filter(time >= 1980,
+         perdrop <1) %>%
+  left_join(., fipslist)
+```
 
 # Introduction
 
-This is an introduction. This is a citation [@foxBackNoAnalogFuture2007]
+# Methods
+First, we describe the data sets we used. Second, the methodology for detecting statistical outliers in time series. Finally, we describe the creation of our flexible one-dimensional, age-specific displacement model.
+
+## Data sets
+
+We use two primary datasets: the National Vital Statistics System (NVSS) U.S. Census Populations with Bridged Race Categories data set^[Data can be downloaded here: https://seer.cancer.gov/popdata/download.html] and the Spatial Hazard Events and Losses Database for the United States (SHELDUS). 
+
+The NVSS Bridged Race Categories data set harmonizes racial classifications across disparate time periods to allow population estimates to be sufficiently comparable across space and time. Importantly, all county boundaries are rectified to be geographically consistent across all time periods. We use the the 1969-2018 dataset which includes annual population estimates in five year age groups (0-4,..., 85+), two sex groups (male and female), and three race groups (White, Black, Other). 
+
+In our statistical outlier analysis, we only consider counties created prior to 2000 and contained in the NVSS data. NVSS aggregated all counties in Hawaii to the state-level in the 1969-2018 NVSS bridged race data and we exclude them from our analysis. Several counties were created after 2000 (most notably is Broomfield County, Colorado). The 15 counties excluded from our analysis due to boundary changes or other reasons are Hoonah-Angoon Census Area AK 02105, Kusilvak Census Area AK 02158, Prince of Wales-Outer Ketchikan Census Area AK 02201, Skagway-Hoonah-Angoon Census Area AK 02232, Wrangell-Petersburg Census Area AK 02280, Adams County CO 08001, Boulder County CO 08013, Broomfield County CO 08014, Jefferson County CO 08059, Weld County CO 08123, Hawaii County HI 15001, Honolulu County HI 15003, Kalawao County HI 15005, Kauai County HI 15007, and Maui County HI 15009. 
+
+We use these data in two separate steps. In our statistical outlier analysis, we aggregate all county-level estimates into annual total population estimates for each county for the period 1969-2016. The historical population estimates prior to 1980 display unusual volatility, so we consider only the time periods 1980-2018. We use the NVSS population estimates disaggregated by age/sex to calculate cohort-change ratios, which we describe below.
+
+The second data source we use is SHELDUS [CITE]. SHELDUS is a county-level hazard data set for the US which contains information about the direct losses (property and crop losses, injuries, and fatalities) caused by a hazard event (thuderstorms, hurricanes, floods, wildfires, tornados, flash floods, earthquakes, etc.) for the period 1960 to the present. We use this database to ensure the county time periods we identify as statistical outliers with population losses contain experienced an environmental hazard in that county-year. This is to ensure the outlier population losses that we detect are associated with a hazard rather than other forces, such as economic forces.
+
+## Statistical Outlier Detection
+We use a statistical time series outlier detection algorithm [@chen1993joint], implemented in the R programming language [@rcore] via the tsoutliers package [@tsoutliers2019]. This algorithm iteratively uses ARIMA models to 1) identify potential outliers or anomalies and 2) refit the ARIMA with the outliers removed to produce a counter-factual time series. Here we briefly summarize and describe the method.
+
+Often, the behavior of a time series can be described and summarized in ARIMA models. If a series of values, $y_t^*$, is subject to $m$ interventions or outliers at time points $t_1,t_2,…,t_m$ with weights $\omega$ then $y_t^*$ can be defined as
+
+\begin{equation}
+\label{eq:arima}
+y_t^* = \sum_{j=1}^{m} \omega_jL_j(B)I_t(t_j) + \frac{\theta(B)}{\phi(B)\alpha(B)}a_t 
+\end{equation}
+
+Where
+$I_t(t_j)$ is an indicator variable with a value of 1 at observation $t_j$ and where the $j$th outlier arises,  
+$\phi(B)$ is an autoregressive polynomial with all roots outside the unit circle,  
+$\theta(B)$ is a moving average polynomial with all roots outside the unit circle,  
+and $\alpha(B)$ is an autoregressive polynomial with all roots on the unit circle.
+
+We examine three types of outliers at time point $t_m$:  
+1. additive outliers (AO), defined as $L_j(B)=1$;  
+2. level shift outliers (LS), defined as $L_j(B) = 1/(1-B)$; and  
+3. temporary change outliers (TC), defined as $L_j(B) = 1/(1-\delta B)$ where $\delta$ is equal to 0.7.
+
+Colloquially, additive outliers arise when a single event causes the time series to unexpectedly increase/decrease for a single time period; level shift outliers arise when an event causes the time series to unexpectedly increase/decrease for multiple time periods; and temporary change outliers arise when an event causes the time series to unexpectedly increase/decrease with lingering effects that decay over multiple time periods.
+
+An outlier is detected with the estimated residuals using a regression equation
+
+\begin{equation}
+\label{eq:residuals}
+\pi(B)y_t^* \equiv \hat{e} = \sum_{j=1}^m \omega_j \pi(B)L_j(B)I_t(t_j) + a_t
+\end{equation}
+where $\pi(B)=\sum_{i=o}^{inf} \pi_iB^i$.
+
+Equations \ref{eq:arima} and \ref{eq:residuals} allow for an automatic detection of anomalies iterated over a two-stage process. 
+
+In stage 1, anomalies are located. First, an ARIMA model is fit to the time series using the `forecast` package in R [@Rforecast;@hymdman2008] where the best performing ARIMA model is selected based on the Bayesian information criterion (BIC). Next, the residuals from the forecast are checked for their significance using equation \ref{eq:residuals} where only anomalies above a critical *t*-static are considered "true" anomalies ($|\tau| \geq 4$; p-value < 0.000063). We chose this threshold to minimize the probability of committing a Type I error (or claiming an outlier is true when it is in fact not). Finally, two additional rules are implemented: If multiple anomalies are detected at the same time point, only the most significant anomaly is selected and if anomalies of the same type at consecutive time periods are detected, only the anomaly with highest *t*-statistic is selected.
+
+In stage 2, anomalies are removed from the time series and a new ARIMA model is chosen and fit. The selection of the initial ARIMA model could have been affected by the presence of the anomalies, making some anomalies spuriously identified. To correct for this, a new ARIMA model is fit accounting for additional regression effects in equation \ref{eq:arima} from the list of candidate anomalies identified in stage 1, effectively removing the anomalies from the time series. Each anomaly is then reassessed under the new model and those anomalies that are no longer significant are removed.
+
+These two stages are then iterated until no additional anomalies are detected. 
 
 
-You can also embed plots (**\autoref{fig-pressure}**), for example:
+```{r, include = FALSE }
+set.seed(1)
+# 
+# download.file("https://seer.cancer.gov/popdata/yr1969_2019.19ages/la.1969_2019.19ages.txt.gz", "../R/DATA-RAW/la.1969_2019.19ages.txt.gz")
+# ## UNZIPPING THE DATA FILE
+# gunzip("../R/DATA-RAW/la.1969_2019.19ages.txt.gz", overwrite = TRUE, remove = TRUE)
 
-```{r pressure, echo=FALSE, message = FALSE, warning = FALSE, dev = c("png", "pdf"),dpi=300,fig.cap= paste("**Title of the figure.** Solid dots show blah blah blah. \\label{fig-pressure}")}
+K05_pop<- read.table("../R/DATA-RAW/la.1969_2019.19ages.txt") 
+K05_pop$V1 <- as.character(K05_pop$V1) # SETTING THE ENTIRE SINGLE VARIABLE INTO A CHARACTER
+K05_pop$YEAR <- as.numeric(substr(K05_pop$V1,1,4)) # SEPARATING THE YEAR AND SETTING IT AS A NUMBER
+K05_pop$STATEID <- substr(K05_pop$V1, 5,6) # SEPARATING THE 2 CHARACTER STATE ABBREVIATION
+K05_pop$STATE <- substr(K05_pop$V1, 7,8) # SEPARATING THE 2-DIGIT STATE CODE
+K05_pop$COUNTY <- substr(K05_pop$V1,9,11) # SEPARATING THE 3-DIGIT COUNTY CODE
+K05_pop$REGISTRY <- substr(K05_pop$V1, 12,12) # REGISTRY IS A THROW AWAY VARIABLE REFERING TO ODD GEOGRAPHIES
+K05_pop$RACE <- substr(K05_pop$V1, 14,14) # SEPARATING OUT THE RACE CODES.
+K05_pop$ORIGIN <- substr(K05_pop$V1, 15,15) # SEPARATING OUT HISPANIC ORIGIN. THIS VARIABLE IS NOT APPLICABLE IN THE 1969-2016 DATA
+K05_pop$SEX <- substr(K05_pop$V1, 16,16) # SEPARATING OUT THE SEX DATA
+K05_pop$POPULATION <- as.numeric(substr(K05_pop$V1, 19, 30)) # SEPARATING THE ACTUAL POPULATION ESTIMATES.
 
-plot(pressure)
+# Setting the groupings
+GROUPING <- c("STATE", "COUNTY", "YEAR")
+
+K05_pop <- K05_pop %>%
+  group_by(.dots = GROUPING) %>%
+  dplyr::summarise(POPULATION = sum(POPULATION))
+
+start <- 1980
+K05_pop$GEOID <- paste0(K05_pop$STATE, K05_pop$COUNTY) # SETTING THE 5-DIGIT FIPS CODE
+K05_pop2 <- filter(K05_pop, GEOID == "22071",
+                  YEAR >= start)
+
+dat3 <- ts(K05_pop2$POPULATION)
+a<- tsoutliers::tso(dat3,types = c("AO","LS","TC"))
+
+
+K05_pop2$label = ifelse(K05_pop2$YEAR == 2006, "Anomaly Detected\n t = -96.4", "")
+
+b <- as.data.frame(forecast(auto.arima(K05_pop2$POPULATION[1:26]), h=14)) %>%
+  mutate(YEAR = seq(2006, 2019,1)) %>%
+  dplyr::select(Point.Forecast = `Point Forecast`, YEAR)
+
+b<- rbind(b, data.frame(YEAR = 2005, `Point Forecast` = 494294))
+
 ```
 
-And you can embed tables (**\autoref{error-table}**):
+```{r ToyExample, echo= FALSE, message = FALSE, warning = FALSE, fig.cap= paste("\\textbf{An example of anomaly detection using Hurricanes Katrina and Rita in Orleans Parish Louisiana in 2005.} Hurricane Katrina struck Louisiana in 2005 and we use it as a toy example to illustrate our approach. This figure shows the annual time series of total population in Orleans Parish between 1980 and 2019. Between 1990 and 2005, Orleans Parish total population changed from 495k to 494k, suggesting a possible 'plateau' in the population (illustrated with the dotted 'counterfactual'). Hurricane Katrina and the widespread population loss of more than 200k people represent a very strong anomaly (t=-96.39). \\label{explanationfigure}")}
 
-```{r cars, echo=FALSE, warning=FALSE, message = FALSE, results='asis'}
-# comes from 'assemble-all-error-summaries.R`
+ggplot(data = K05_pop2, aes( x = YEAR, y = POPULATION)) +
+  geom_line() +
+  geom_point(data = K05_pop2[which(K05_pop2$label == "Anomaly Detected\n t = -96.4"),], aes(size=2), shape=1) + 
+  geom_line(data = b, aes(y = Point.Forecast, x=YEAR), linetype=2) +
+  scale_y_continuous(label=comma) +
+  geom_label_repel(aes(label = label),
+                   box.padding   = 0.4, 
+                   point.padding = 0.6,
+                   segment.color = 'grey50') +
+  annotate(geom='text', x=2021, y=500000, label=TeX("Counterfactual estimate, $\\hat{y}$", output='character'), parse=TRUE, hjust = 0) +
+  annotate(geom='text', x=2021, y=390000, label=TeX("Observed data, $y$", output='character'), parse=TRUE, hjust = 0) +
+  scale_x_continuous(breaks = seq(1980, 2020, 10), limits = c(1980,2040), expand= c(0,0)) +
+   scale_y_continuous(label=comma, limits=c(0, 565000), breaks = seq(0,570000,100000)) +
+  coord_capped_cart(bottom='right') +
+  theme_classic() +
+  theme(legend.position = "none")+
+  labs(x = "Year",
+       y = "Total Population")
 
-z<-summary(cars)
-kable(z, "latex", booktabs = T, caption = "\\label{error-table}\\textbf{Summary statistics for cars.} APE is the Description here.") %>%
-  kable_styling(latex_options = c("scale_down")) %>%
-  collapse_rows(columns = 1, latex_hline = "major", valign = "middle") 
 ```
+
+**\autoref{explanationfigure}** shows a toy example for anomaly detection in a time series using the example of Hurricane Katrina in Orleans Parish. On August 23 2005, Hurricane Katrina, a category 5 hurricane, struck southern Louisiana causing widespread damage and destruction in Orleans Parish in particular. The displacement from the Hurricane and the federal response were well documented [@horiDisplacementDynamicsSouthern2009; @fussellRecoveryMigrationCity2014] and Census estimates suggest Orleans Parish lost more than 200,000 residents between 2005 and 2006. What would have been Orleans' population estimate had Hurricane Katrina *not* occurred? A simple counter-factual estimate might keep population size just under 500,000 people ($\hat{y}$). 
+
+In the Hurricane Katrina example, we have knowledge of the impact of Hurricane Katrina after the fact or ex-post-facto in order to create the counter-factual time series $\hat{y}$. But is this anomaly detectable without knowledge of the Hurricane Katrina? In other words, can we detect the reduction of Orleans Parish's population between 2005 and 2006 using only the time series? Absolutely. The tsoutliers package identifies 2006 as an extremely strong level-shift outlier (*t*-stat = `r round( a$outliers$tstat[1], digits = 2)`). The real world is hardly this simplified where a direct intervention is known, is large, and is testable.
+
+## Flexible one-dimensional, age-specific displacement model
+We search all US counties for negative statistical outliers (indicating population losses) between 1980 and 2018. We detect  `r nrow(a)-1` population losses of magnitude 4$\sigma$ or greater. We then searched the SHELDUS database to see if these county-years experienced hazardous losses in excess of the 50th percentile. Four county-periods did not qualify. Additionally, one county-period contained age-sex groups with 0 people, necessitating exclusion. 
+
+With `r nrow(a)-2` county-periods exhibiting large population declines after verified hazard losses, we build a flexible, one-dimensional, age-specific displacement model.
+
+To link population displacement with age-specific population changes, we calculate cohort-change ratios in each county. Using the demographic accounting equation, the population at some time period *t* is equal to the $P_{t-1} + B_{t-1} - D_{t-1} + M_{{t-1},in} - M_{{t-1},out}$. For all age groups older than 0, $B_{t-1}$ must be 0. 
+
+The calculation of a cohort-change ratio, as its name suggests, is relatively straightforward:
+
+$$ 
+CCR_{x,t}  =  \frac {_nP_{x,t}} {_nP_{x-y,t-y}}
+$$
+
+Where $_nP_{x,t}$ is the population aged $x$ to $x+n$ in time $t$ and $_nP_{x-y,t}$ is the population aged $x-y$ to $x+n-y$ in time $t$ where $y$ refers to the time difference between time periods. Since mortality must decrement a population, any CCR above 1.0 implies a net-migration rate in excess of the mortality rate, and a growing population. 
+
+We build the following model based on the relationship between the change in CCRs at age $x$, $\Delta CCR_x = CCR_{x,t} / CCR_{x,t-1}$, and the percentage decline in the total population compared to the counter-factual in the outlier detection method, $\Delta P_t = \hat{P_t} / P_t$:
+
+$$
+log(\Delta CCR_x) = a_x + b_xh + c_xh^2
+$$
+
+Here, $h$ is the log($\Delta P_t$) and shows a non-linear relationship with the logarithm of the change in CCRs by age. $x$ refers to five-year age groups: 0-4, 5-9,..., 85+. 
+
+
+```{r correltable, echo=FALSE, results='asis', message=FALSE, warning=FALSE, }
+coeffs <- read_csv("../R/DATA-PROCESSED/modelcoeffs.csv")
+
+correlationcoeffs <- coeffs %>% dplyr::select(groups, rsq, sex) %>%
+  mutate(sex = case_when(sex == 1 ~ "Male", sex==2 ~ "Female"),
+         `Age Group` = case_when(
+           groups == "ccr1" ~ "0-4",
+           groups == "ccr2" ~ "5-9",
+           groups == "ccr3" ~ "10-14",
+           groups == "ccr4" ~ "15-19",
+           groups == "ccr5" ~ "20-24",
+           groups == "ccr6" ~ "25-4",
+           groups == "ccr7" ~ "30-34",
+           groups == "ccr8" ~ "35-39",
+           groups == "ccr9" ~ "40-44",
+           groups == "ccr10" ~ "45-49",
+           groups == "ccr11" ~ "50-54",
+           groups == "ccr12" ~ "55-59",
+           groups == "ccr13" ~ "60-64",
+           groups == "ccr14" ~ "65-69",
+           groups == "ccr15" ~ "70-74",
+           groups == "ccr16" ~ "75-79",
+           groups == "ccr17" ~ "80+",
+         )) %>%
+  pivot_wider(names_from = sex, values_from= rsq) %>%
+  dplyr::select(-groups)
+
+kable(correlationcoeffs, "latex", booktabs = T, caption="\\textbf{Correlation coefficients of changes in Cohort Change Ratios vs. Total Population Change (n=49).}", digits = 3)
+```
+
+```{r CCRfig, echo= FALSE, message = FALSE, warning = FALSE, fig.cap= paste("\\textbf{Age-specific changes in cohort-change ratios ($\\Delta CCR_x$) vs. change in total population ($\\Delta P_t$).}  \\label{CCRfig}")}
+
+CCRs3 <- read_csv("../R/DATA-PROCESSED/CCRs.csv")
+makemultiplot <- function(i, title){
+
+z <- filter(CCRs3, groups == paste0("ccr",i)) # filtering to age group i and men
+# SEX == 1)  
+a<-data.frame(y =z$testval, x=z$perdrop)
+ggplot(data=a, aes(x= x, y =y)) +
+  geom_point() +
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+  theme_bw() +
+  labs(x = "% Change in Population",
+       y = "% Change in CCR",
+       title = paste0(title))
+# return(a_1)
+}
+a_1 <- makemultiplot(1, "Age 0-4") +
+  theme(axis.title.x=element_blank(),
+        # axis.text.x=element_blank(),
+        # axis.ticks.x=element_blank(),
+        axis.title.y=element_blank())
+a_2 <- makemultiplot(4, "Age 15-19") +
+  theme(axis.title.x=element_blank(),
+        # axis.text.x=element_blank(),
+        # axis.ticks.x=element_blank(),
+        axis.title.y=element_blank())
+a_3 <- makemultiplot(7, "Age 30-34") +
+  theme(axis.title.x=element_blank(),
+        # axis.text.x=element_blank(),
+        # axis.ticks.x=element_blank()
+        )
+a_4 <- makemultiplot(10, "Age 45-49") +
+  theme(axis.title.x=element_blank(),
+        # axis.text.x=element_blank(),
+        # axis.ticks.x=element_blank(),
+        axis.title.y=element_blank())
+a_5 <- makemultiplot(13, "Age 60-64") +
+theme(axis.title.y=element_blank())
+a_6 <- makemultiplot(17, "Age 80+") +
+  theme(axis.title.y=element_blank())
+
+plot_grid(a_1, a_2, a_3, a_4, a_5, a_6,
+          ncol=2, align = "hv")
+```
+
+# Results
+
+# Conclusion
 
 \newpage

@@ -291,12 +291,14 @@ project = function(x){
     
     displacepercent <- ssp5rcp85 %>%
       filter(FIPS == substr(x,1,5))
-    displacepercent <- left_join(years, displacepercent) %>%
-      mutate(ssp5rcp85 = na.approx(ssp5rcp85)) 
+    displacepercent <- left_join(years, displacepercent)
+    displacepercent[is.na(displacepercent)] <-1
+      # 
+      # mutate(ssp5rcp85 = na.approx(ssp5rcp85)) 
       
     coeffs2 <- merge(coeffs, displacepercent) %>%
       mutate(reduce = exp(b * log(ssp5rcp85) + c * (log(ssp5rcp85)^2)))
-    
+    # coeffs2$reduce = coeffs2$ssp5rcp85
     
     ### Calculating the CCR UCMs for each individual age group
     for (i in 1:(SIZE-1)){
@@ -425,6 +427,22 @@ z <- KT %>%
          RACE = 0) %>%
   group_by(YEAR, TYPE) %>%
   dplyr::summarise(A = sum(A))
+
+naive <- z_base[which(z_base$TYPE == "Mult"),] %>%
+  left_join(., ssp5rcp85[which(ssp5rcp85$FIPS == "12086"),]) %>%
+  mutate(B = A * (1-(count/SSP5))) %>%
+  ungroup() %>%
+  mutate(B = na.approx(B))
+
+ggplot() +
+  geom_line(data = z_base[which(z_base$TYPE == "Mult"),], aes(x = YEAR, y = A), color = "black") +
+  geom_line(data = z[which(z$TYPE == "Mult"),], aes(x = YEAR, y = A), color = "red") +
+  geom_line(data=naive, aes(x=YEAR, y =B),
+            color = "blue") +
+  theme_bw() +
+  labs(y = "pop",
+       title = "Miami-Dade",
+       caption = "black is the projection without SLR migration. red is the projection with SLR")
 
 z[is.na(z)] <-0
 basesum <-  Klaunch[which( Klaunch$YEAR == launch_year),] %>%
