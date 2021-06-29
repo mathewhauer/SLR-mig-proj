@@ -85,6 +85,17 @@ a <- popdrops %>%
 ```
 
 # Introduction
+Environmental migration is an increasingly important concern in a warming world [@blackClimateChangeMigration2011;@findlayMigrantDestinationsEra2011;@boas2019climate]. Some research suggests there could be as many as 140 million climate migrants by the middle of this century [@rigaud2018groundswell], suggesting environmental and climate migration will remain an important concern this century.
+
+Although there is increasing interest in environmental migration, most migration research suffers from two key limitations. First, most studies on environmental migration use case study approaches employing either a single country or a single environmental event. Using case studies makes sense, especially with the ever lengthening list of major environmental events that can be coupled with good migration data. For instance, there are now a multitude of studies on Hurricane Katrina in New Orleans in 2006 (e.g., [@fussellRaceSocioeconomicStatus2010;@fussellRecoveryMigrationCity2014;@thiedeHurricaneKatrinaWho2013;@groen2010going]), a growing number of studies on Hurricane Maria in Puerto Rico in 2018 [@alexander2019impact;@dewaard2020out;@acosta2020quantifying], and many studies on natural disasters [@kayastha1985flood;@loebach2016household;@paul2005evidence;@mallick2014population]. Few studies attempt more systematic analyses of environmental migration (see @obokata2014empirical, @hunter2015environmental, @hoffmann2020meta for broader reviews of environmental). This has lead to a patchwork of our understanding of environmental migration, with environmental migration signals often showing conflicting findings [@hoffmann2020meta].
+
+Second, most studies on environmental migration focus on population aggregates, examining total population changes (e.g. @luUnveilingHiddenMigration2016, @hauer2020evacuees, @nawrotzki2013rainfall). Yet migration propensity has a well-known age gradient where the most likely to migrate are young adults and the least likely are older adults. We know from some case studies that typical migration patterns manifest after an environmental event [@thiedeHurricaneKatrinaWho2013;@groen2010going; @keenan2020resilience], but these case studies involve some of the most destructure hurricanes in US history. The extent to which typical migration patterns manifest after smaller, less destructive events is presently unknown.
+
+These two shortcomings related to isolated case studies and total population are important limitations on our ability to predict future environmental migration. The parallels between historic environmental migration and future climate migration form the backbone of most prospective analyses of climate migration [@rigaud2018groundswell; @hauerMigrationInducedSealevel2017; @chen2018coastal; @xu2020future]. Yet many of these prospective analyses rely on individual case studies [@chen2018coastal; @robinson2020modeling], general migration theory [@hauerMigrationInducedSealevel2017;@bell2021migration], or heavy modeling of urban/rural populations [@rigaud2018groundswell; @gao2020mapping]. Conspicuously missing from these models are attempts to capture the well-known relationship between migration propensity and age. Furthermore, while general migration theory and individual case studies are important and useful, the efficacy of using them for prospective analyses of climate migration is questionable.
+
+In this article, we rectify these shortcomings of environmental migration studies. To overcome the limitation of case studies, we couple a statistical outlier [@chen1993joint] technique with nearly 40 years of population data in approximately 3000 US counties (for approximately 120k county-years) to search for environmental events associated with large population declines. We then use the Spatial Hazard Events and Losses Database for the United States (SHELDUS)^[available at  http://www.sheldus.org] to ensure the outliers we detect are associated with an environmental hazard rather than other factors, like a factory closing. This search provides a relatively large and varied historical pool of significant environmental hazards from which we build a parsimonious, one-dimensional, age-specific displacement model. We link total population declines with changes in age-specific cohort change ratios to produce a predictive model of age-sex population changes in the face of an environmental hazard.
+
+# Environmental Migration
 
 # Methods
 First, we describe the data sets we used. Second, the methodology for detecting statistical outliers in time series. Finally, we describe the creation of our flexible one-dimensional, age-specific displacement model.
@@ -102,7 +113,7 @@ We use these data in two separate steps. In our statistical outlier analysis, we
 The second data source we use is SHELDUS [CITE]. SHELDUS is a county-level hazard data set for the US which contains information about the direct losses (property and crop losses, injuries, and fatalities) caused by a hazard event (thuderstorms, hurricanes, floods, wildfires, tornados, flash floods, earthquakes, etc.) for the period 1960 to the present. We use this database to ensure the county time periods we identify as statistical outliers with population losses contain experienced an environmental hazard in that county-year. This is to ensure the outlier population losses that we detect are associated with a hazard rather than other forces, such as economic forces.
 
 ## Statistical Outlier Detection
-We use a statistical time series outlier detection algorithm [@chen1993joint], implemented in the R programming language [@rcore] via the tsoutliers package [@tsoutliers2019]. This algorithm iteratively uses ARIMA models to 1) identify potential outliers or anomalies and 2) refit the ARIMA with the outliers removed to produce a counter-factual time series. Here we briefly summarize and describe the method.
+We use a statistical time series outlier detection algorithm [@chen1993joint], implemented in the R programming language [@rcore] via the tsoutliers package [@tsoutliers2019]. This algorithm iteratively uses ARIMA models to 1) identify potential outliers and 2) refit the ARIMA with the outliers removed to produce a counter-factual time series. Here we briefly summarize and describe the method.
 
 Often, the behavior of a time series can be described and summarized in ARIMA models. If a series of values, $y_t^*$, is subject to $m$ interventions or outliers at time points $t_1,t_2,…,t_m$ with weights $\omega$ then $y_t^*$ can be defined as
 
@@ -132,13 +143,13 @@ An outlier is detected with the estimated residuals using a regression equation
 \end{equation}
 where $\pi(B)=\sum_{i=o}^{inf} \pi_iB^i$.
 
-Equations \ref{eq:arima} and \ref{eq:residuals} allow for an automatic detection of anomalies iterated over a two-stage process. 
+Equations \ref{eq:arima} and \ref{eq:residuals} allow for an automatic detection of outliers iterated over a two-stage process. 
 
-In stage 1, anomalies are located. First, an ARIMA model is fit to the time series using the `forecast` package in R [@Rforecast;@hymdman2008] where the best performing ARIMA model is selected based on the Bayesian information criterion (BIC). Next, the residuals from the forecast are checked for their significance using equation \ref{eq:residuals} where only anomalies above a critical *t*-static are considered "true" anomalies ($|\tau| \geq 4$; p-value < 0.000063). We chose this threshold to minimize the probability of committing a Type I error (or claiming an outlier is true when it is in fact not). Finally, two additional rules are implemented: If multiple anomalies are detected at the same time point, only the most significant anomaly is selected and if anomalies of the same type at consecutive time periods are detected, only the anomaly with highest *t*-statistic is selected.
+In stage 1, outliers are located. First, an ARIMA model is fit to the time series using the `forecast` package in R [@Rforecast;@hymdman2008] where the best performing ARIMA model is selected based on the Bayesian information criterion (BIC). Next, the residuals from the forecast are checked for their significance using equation \ref{eq:residuals} where only outliers above a critical *t*-static are considered "true" outliers ($|\tau| \geq 4$; p-value < 0.000063). We chose this threshold to minimize the probability of committing a Type I error (or claiming an outlier is true when it is in fact not). Finally, two additional rules are implemented: If multiple outliers are detected at the same time point, only the most significant outlier is selected and if outliers of the same type at consecutive time periods are detected, only the outlier with highest *t*-statistic is selected.
 
-In stage 2, anomalies are removed from the time series and a new ARIMA model is chosen and fit. The selection of the initial ARIMA model could have been affected by the presence of the anomalies, making some anomalies spuriously identified. To correct for this, a new ARIMA model is fit accounting for additional regression effects in equation \ref{eq:arima} from the list of candidate anomalies identified in stage 1, effectively removing the anomalies from the time series. Each anomaly is then reassessed under the new model and those anomalies that are no longer significant are removed.
+In stage 2, outliers are removed from the time series and a new ARIMA model is chosen and fit. The selection of the initial ARIMA model could have been affected by the presence of the outliers, making some outliers spuriously identified. To correct for this, a new ARIMA model is fit accounting for additional regression effects in equation \ref{eq:arima} from the list of candidate outliers identified in stage 1, effectively removing the outliers from the time series. Each outlier is then reassessed under the new model and those outliers that are no longer significant are removed.
 
-These two stages are then iterated until no additional anomalies are detected. 
+These two stages are then iterated until no additional outliers are detected. 
 
 
 ```{r, include = FALSE }
@@ -186,7 +197,7 @@ b<- rbind(b, data.frame(YEAR = 2005, `Point Forecast` = 494294))
 
 ```
 
-```{r ToyExample, echo= FALSE, message = FALSE, warning = FALSE, fig.cap= paste("\\textbf{An example of anomaly detection using Hurricanes Katrina and Rita in Orleans Parish Louisiana in 2005.} Hurricane Katrina struck Louisiana in 2005 and we use it as a toy example to illustrate our approach. This figure shows the annual time series of total population in Orleans Parish between 1980 and 2019. Between 1990 and 2005, Orleans Parish total population changed from 495k to 494k, suggesting a possible 'plateau' in the population (illustrated with the dotted 'counterfactual'). Hurricane Katrina and the widespread population loss of more than 200k people represent a very strong anomaly (t=-96.39). \\label{explanationfigure}")}
+```{r ToyExample, echo= FALSE, message = FALSE, warning = FALSE, fig.cap= paste("\\textbf{An example of outlier detection using Hurricanes Katrina and Rita in Orleans Parish Louisiana in 2005.} Hurricane Katrina struck Louisiana in 2005 and we use it as a toy example to illustrate our approach. This figure shows the annual time series of total population in Orleans Parish between 1980 and 2019. Between 1990 and 2005, Orleans Parish total population changed from 495k to 494k, suggesting a possible 'plateau' in the population (illustrated with the dotted 'counterfactual'). Hurricane Katrina and the widespread population loss of more than 200k people represent a very strong outlier (t=-96.39). \\label{explanationfigure}")}
 
 ggplot(data = K05_pop2, aes( x = YEAR, y = POPULATION)) +
   geom_line() +
@@ -209,9 +220,9 @@ ggplot(data = K05_pop2, aes( x = YEAR, y = POPULATION)) +
 
 ```
 
-**\autoref{explanationfigure}** shows a toy example for anomaly detection in a time series using the example of Hurricane Katrina in Orleans Parish. On August 23 2005, Hurricane Katrina, a category 5 hurricane, struck southern Louisiana causing widespread damage and destruction in Orleans Parish in particular. The displacement from the Hurricane and the federal response were well documented [@horiDisplacementDynamicsSouthern2009; @fussellRecoveryMigrationCity2014] and Census estimates suggest Orleans Parish lost more than 200,000 residents between 2005 and 2006. What would have been Orleans' population estimate had Hurricane Katrina *not* occurred? A simple counter-factual estimate might keep population size just under 500,000 people ($\hat{y}$). 
+**\autoref{explanationfigure}** shows a toy example for outlier detection in a time series using the example of Hurricane Katrina in Orleans Parish. On August 23 2005, Hurricane Katrina, a category 5 hurricane, struck southern Louisiana causing widespread damage and destruction in Orleans Parish in particular. The displacement from the Hurricane and the federal response were well documented [@horiDisplacementDynamicsSouthern2009; @fussellRecoveryMigrationCity2014] and Census estimates suggest Orleans Parish lost more than 200,000 residents between 2005 and 2006. What would have been Orleans' population estimate had Hurricane Katrina *not* occurred? A simple counter-factual estimate might keep population size just under 500,000 people ($\hat{y}$). 
 
-In the Hurricane Katrina example, we have knowledge of the impact of Hurricane Katrina after the fact or ex-post-facto in order to create the counter-factual time series $\hat{y}$. But is this anomaly detectable without knowledge of the Hurricane Katrina? In other words, can we detect the reduction of Orleans Parish's population between 2005 and 2006 using only the time series? Absolutely. The tsoutliers package identifies 2006 as an extremely strong level-shift outlier (*t*-stat = `r round( a$outliers$tstat[1], digits = 2)`). The real world is hardly this simplified where a direct intervention is known, is large, and is testable.
+In the Hurricane Katrina example, we have knowledge of the impact of Hurricane Katrina after the fact or ex-post-facto in order to create the counter-factual time series $\hat{y}$. But is this outlier detectable without knowledge of the Hurricane Katrina? In other words, can we detect the reduction of Orleans Parish's population between 2005 and 2006 using only the time series? Absolutely. The tsoutliers package identifies 2006 as an extremely strong level-shift outlier (*t*-stat = `r round( a$outliers$tstat[1], digits = 2)`). The real world is hardly this simplified where a direct intervention is known, is large, and is testable.
 
 ## Flexible one-dimensional, age-specific displacement model
 We search all US counties for negative statistical outliers (indicating population losses) between 1980 and 2018. We detect  `r nrow(a)-1` population losses of magnitude 4$\sigma$ or greater. We then searched the SHELDUS database to see if these county-years experienced hazardous losses in excess of the 50th percentile. Four county-periods did not qualify. Additionally, one county-period contained age-sex groups with 0 people, necessitating exclusion. 
@@ -231,10 +242,10 @@ Where $_nP_{x,t}$ is the population aged $x$ to $x+n$ in time $t$ and $_nP_{x-y,
 We build the following model based on the relationship between the change in CCRs at age $x$, $\Delta CCR_x = CCR_{x,t} / CCR_{x,t-1}$, and the percentage decline in the total population compared to the counter-factual in the outlier detection method, $\Delta P_t = \hat{P_t} / P_t$:
 
 $$
-log(\Delta CCR_x) = a_x + b_xh + c_xh^2
+log(\Delta CCR_x) = a_x + b_xh
 $$
 
-Here, $h$ is the log($\Delta P_t$) and shows a non-linear relationship with the logarithm of the change in CCRs by age. $x$ refers to five-year age groups: 0-4, 5-9,..., 85+. 
+Here, $h$ is the log($\Delta P_t$) and shows a linear relationship with the logarithm of the change in CCRs by age. $x$ refers to five-year age groups: 0-4, 5-9,..., 85+. This is a similar model and approach to Wilmoth et al's [-@wilmoth2012flexible] flexible, one-dimensional mortality model based on the linearity between age-specific mortality rates and infant-mortality. **Table 1** depicts the correlation coefficients between log($\Delta CCR_x$) and log($\Delta P_t$). The age groups with the lowest correlation coefficients are young adult males aged 20-39 and those in the open-ended age interval (80+), suggesting these age/sex groups react to environmental signals the least predictably.
 
 
 ```{r correltable, echo=FALSE, results='asis', message=FALSE, warning=FALSE, }
@@ -248,7 +259,7 @@ correlationcoeffs <- coeffs %>% dplyr::select(groups, rsq, sex) %>%
            groups == "ccr3" ~ "10-14",
            groups == "ccr4" ~ "15-19",
            groups == "ccr5" ~ "20-24",
-           groups == "ccr6" ~ "25-4",
+           groups == "ccr6" ~ "25-29",
            groups == "ccr7" ~ "30-34",
            groups == "ccr8" ~ "35-39",
            groups == "ccr9" ~ "40-44",
@@ -264,8 +275,10 @@ correlationcoeffs <- coeffs %>% dplyr::select(groups, rsq, sex) %>%
   pivot_wider(names_from = sex, values_from= rsq) %>%
   dplyr::select(-groups)
 
-kable(correlationcoeffs, "latex", booktabs = T, caption="\\textbf{Correlation coefficients of changes in Cohort Change Ratios vs. Total Population Change (n=49).}", digits = 3)
+kable(correlationcoeffs, "latex", booktabs = T, caption="\\textbf{Correlation coefficients of changes in Cohort Change Ratios vs. Total Population Change (n=48).}", digits = 3)
 ```
+
+**\autoref{CCRfig}** shows the relationship for selected age-groups between log($\Delta CCR_x$) and log($\Delta P_t$). Here we can see the near linear relationship between the percentage reduction in the population and the percentage reduction in $CCR_x$. Note the two county-years with the greatest reductions in total population refer to Louisiana counties most impacted by Hurricane Katrina.
 
 ```{r CCRfig, echo= FALSE, message = FALSE, warning = FALSE, fig.cap= paste("\\textbf{Age-specific changes in cohort-change ratios ($\\Delta CCR_x$) vs. change in total population ($\\Delta P_t$).}  \\label{CCRfig}")}
 
@@ -277,8 +290,10 @@ z <- filter(CCRs3, groups == paste0("ccr",i)) # filtering to age group i and men
 a<-data.frame(y =z$testval, x=z$perdrop)
 ggplot(data=a, aes(x= x, y =y)) +
   geom_point() +
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+  stat_smooth(method = "lm", formula = y ~ x) +
   theme_bw() +
+  xlim(0,1) +
+  ylim(0,1) +
   labs(x = "% Change in Population",
        y = "% Change in CCR",
        title = paste0(title))
@@ -313,8 +328,71 @@ plot_grid(a_1, a_2, a_3, a_4, a_5, a_6,
           ncol=2, align = "hv")
 ```
 
-# Results
+Finally, **\autoref{}** shows the model coefficients.
+
+```{r }
+
+```
+
+## Environmental Migration estimation using the fitted model
+Using $h=log(\Delta P_t)$, we can estimate age-specific changes in CCRs after an environmental event by simply applying the following formula:
+
+$$\hat{CCR_{x,t}} = CCR_{x,t-1} \cdot e^{\hat\beta_xh}$$
+Where $e^{\hat\beta_xh}$ provides the percentage change in $CCR_x$ based on the log($\Delta{P_t}$).In this case, we drop the intercept ($a$) from the estimation procedure to ensure a 0% decline in population yields a corresponding 0% change in the CCR. Simply multiplying the result from the model with the CCR in the year prior yields the anticipated change in the CCR. These changes in CCRs can then be applied to any time series of population values to generate an anticipated population. 
+
+```{r evalfig, echo= FALSE, message = FALSE, warning = FALSE, fig.cap= paste("\\textbf{Relationship between predicted populations using our model and observed populations in the 48 counties in our selection.} (a) shows the total population and (b) shows the populations for each age/sex group. The diagonal solid line is y=x. The model produces good fits for both the total population and by age/sex group.  \\label{EvalFig}") }
+
+CCRs5 <- read_csv("../R/DATA-PROCESSED/CCR_evaluation.csv")
+
+summarystats <- CCRs5 %>%
+  group_by(GEOID, YEAR) %>%
+  dplyr::summarise(POPULATION = sum(POPULATION),
+                   predPop = sum(predPop)) %>%
+  mutate(diff = predPop - POPULATION,
+         perdiff = diff / POPULATION)
+
+rsqa <- round(cor(summarystats$POPULATION, summarystats$predPop)^2, digits = 3)
+rsqb <- round(cor(CCRs5$POPULATION, CCRs5$predPop)^2, digits = 3)
+
+a<-ggplot(summarystats, aes(x = POPULATION, y = predPop)) +
+  geom_point() +
+  theme_bw() +
+  geom_abline(slope=1) +
+  scale_x_continuous(trans='log2', label = comma) +
+  scale_y_continuous(trans='log2', label = comma) +
+  annotate("text",x = min(summarystats$predPop)*5, y =max(summarystats$POPULATION),
+           label = paste0("r^{2}==",rsqa), parse = TRUE) +
+  labs(x = "Observed Population",
+       y = "Predicted Population",
+       title = "Total Population",
+       caption = "n=48")
+
+b<-ggplot(CCRs5, aes(x = POPULATION, y = predPop)) +
+  # geom_point(aes(x = CCR, y = predCCR), alpha = 1/10) +
+  geom_point(alpha = 1/10) +
+  theme_bw() +
+  geom_abline(slope=1) +
+  scale_x_continuous(trans='log2', label = comma) +
+  scale_y_continuous(trans='log2', label = comma) +
+  annotate("text",x = min(CCRs5$predPop)*10, y =max(CCRs5$POPULATION),
+           label = paste0("r^{2}==",rsqb), parse = TRUE) +
+  labs(x = "Observed Population",
+       y = "Predicted Population",
+       title = "Population by age-group",
+       caption = "n=1,630")
+
+plot_grid(a,b, ncol=2, labels = "auto")
+
+```
+
+
+**\autoref{EvalFig}** shows the accuracy of the our fitted, one-dimensional model. We estimate the predicted population using the equation outlined above and then compare against the observed population. Regarding total population in our 48 counties, our model performs well with an $r^2$ value of 0.994 and performs well regardless of population size. Regarding each individual $P_x$ group, our model performs slightly worse, but still performs quite well with an $r^2$ of 0.976. And just like with total population, the accuracy of our model does not depend on population size.
 
 # Conclusion
+In this paper we introduced a flexible, one-dimensional age-specific migration model using a statistical outlier search algorithm. We searched over 3,000 US counties for significant population declines and then cross referenced our outliers with data from SHELDUS to eliminate spurious outliers. We then built and evaluated a predictive model of age-sex specific population change attributable to environmental events.
+
+
+
+
 
 \newpage
