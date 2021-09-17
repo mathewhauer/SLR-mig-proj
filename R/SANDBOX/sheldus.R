@@ -19,7 +19,11 @@ dat_sheldus1 <- read_csv("./R/DATA-RAW/UID6147f_AGG_A.csv") %>%
 dat_sheldus2 <- read_csv("./R/DATA-RAW/UID6147f_AGG_B.csv") %>%
   dplyr::select(1:5,7,8)
 
+
 dat_sheldus <- bind_rows(dat_sheldus1, dat_sheldus2)
+
+sheldcutoff <- median(dat_sheldus$`PropertyDmgPerCapita(ADJ 2019)`, na.rm=T)
+
 dat_sheldus2 <- dat_sheldus %>%
   dplyr::select(-Hazard) %>%
   pivot_longer(cols = c(5:12),
@@ -32,6 +36,6 @@ dat_sheldus2 <- dat_sheldus %>%
   mutate(cnty_year = paste(substr(`County FIPS`,2,6), Year, sep = "_")) %>%
   filter(cnty_year %in% cnty_years) %>%
   left_join(., anoms) %>%
-  filter(`PropertyDmgPerCapita(ADJ 2019)` >= 0.38467) # This is the 50th percentile value
+  filter(`PropertyDmgPerCapita(ADJ 2019)` >= sheldcutoff)  # This is the 50th percentile value
   group_by(`State Name`, `County Name`, `County FIPS`, anomalyyear) %>%
     dplyr::summarise(propdam = max(`PropertyDmgPerCapita(ADJ 2019)`))
