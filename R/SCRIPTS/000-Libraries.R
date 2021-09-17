@@ -68,7 +68,11 @@ pkgs <- c(
   "gghighlight",
   "forecast",
   "latex2exp",
-  "lemon"
+  "lemon",
+  "Matrix",
+  "tictoc",
+  "future",
+  "furrr"
   
 )
 

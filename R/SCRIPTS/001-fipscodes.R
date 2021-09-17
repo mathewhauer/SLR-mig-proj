@@ -24,4 +24,5 @@ countynames <- group_by(fipslist, GEOID, NAME, state) %>%
 
 
 
-toymodel <- c("12086", "13121")
+# toymodel <- c("12086", "13121", "12011")
+toymodel <- GEOID

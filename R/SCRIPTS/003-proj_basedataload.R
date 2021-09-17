@@ -1,7 +1,7 @@
 ###------DATA LOAD-----
 ## @knitr projbasedata
 # 
-toymodel <- c("12086", "13121")
+# toymodel <- c("12086", "13121")
 
 # Setting the groupings
 GROUPING <- c("STATE", "COUNTY", "YEAR", "AGE", "SEX")
