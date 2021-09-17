@@ -414,6 +414,9 @@ for (i in 1:STEPS){
   rm(kids, males, females, proj3, proj4, proj2)
 }
 
+
+#### RUN TO THIS POINT ONLY
+
 rm()
   
   
