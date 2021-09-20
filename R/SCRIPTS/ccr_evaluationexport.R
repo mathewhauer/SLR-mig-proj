@@ -10,7 +10,7 @@ fipslist <- read_csv(file="https://www2.census.gov/geo/docs/reference/codes/file
 # Setting the groupings
 GROUPING <- c("STATE", "COUNTY", "YEAR")
 # READING THE cdc DATA INTO R. THE DATA ARE IN A SINGLE COLUMN FORMAT AND SO THEY MUST BE BROKEN APART.
-K05_pop<- read.table("DATA-RAW/us.1969_2018.19ages.txt") 
+K05_pop<- read.table("DATA-RAW/us.1969_2019.19ages.txt") 
 K05_pop$V1 <- as.character(K05_pop$V1) # SETTING THE ENTIRE SINGLE VARIABLE INTO A CHARACTER
 K05_pop$YEAR <- as.numeric(substr(K05_pop$V1,1,4)) # SEPARATING THE YEAR AND SETTING IT AS A NUMBER
 K05_pop$STATEID <- substr(K05_pop$V1, 5,6) # SEPARATING THE 2 CHARACTER STATE ABBREVIATION

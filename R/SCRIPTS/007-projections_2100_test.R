@@ -281,11 +281,11 @@ z <- K05_pop[which(K05_pop$COUNTYRACE %in% x & K05_pop$YEAR == launch_year),] %>
   arrange(GEOID, SEX, AGE)
 
 p0 <- array(0,c(nrow(z),3))
-# pred0 <- array(0,c(nrow(z),3))
+pred0 <- array(0,c(nrow(z),3))
 # for(j in 1:3){
   # p0[,j] <- z$POPULATION
   p0 <- z$POPULATION
-  # pred0[,j] <- z$POPULATION
+  pred0 <- z$POPULATION
 # }
 
 
@@ -305,6 +305,7 @@ for (i in 1:STEPS){
   print(i)
   # Prepping the migration data
   migs2 <- migs[which(migs$step == i),] %>%
+    filter(origin!=destination) %>%
     dplyr::select(origin, destination, step, `Point Forecast`) %>%
     group_by(origin, destination) %>%
     pivot_wider(names_from = destination, values_from = `Point Forecast`, values_fill = 0) %>%
@@ -338,6 +339,7 @@ for (i in 1:STEPS){
   
   data_tablef <- get(paste0("S",i)) # getting the Survival matrix
   popdat<- Matrix(get(paste0("p",i-1))) # getting the population vector
+  popdatred<- Matrix(get(paste0("pred",i-1))) # getting the population vector
   proj2 <- array(0,c(length(p0),3)) # setting up the projection matrix for collecting results
  
   # Repeating this setup for the reduced population.
@@ -348,7 +350,7 @@ for (i in 1:STEPS){
   # actual population projection step  
   # for(j in 1:3){
       proj2 <- data_tablef %*% popdat
-      projred2 <- data_tablefred %*% popdat
+      projred2 <- data_tablefred %*% popdatred
     # }
     # 
   # migdat <- migs2[which(migs2$step==i),]
@@ -358,11 +360,12 @@ for (i in 1:STEPS){
 
 
   z2$migrants1 = z2[,7] * z2[,9]
+  
   # z2$migrants2 = z2$`2`*z2$freq
   # z2$migrants3 = z2$`3`*z2$freq
   z2 <- z2 %>%
     group_by(destination, AGE, SEX) %>%
-    dplyr::summarise(`mean` = sum(migrants1),
+    dplyr::summarise(`mean_mig` = sum(migrants1),
                      # `2` = sum(migrants2),
                      # `3` = sum(migrants3)
                      ) %>%
@@ -372,7 +375,9 @@ for (i in 1:STEPS){
   proja <- projred2 + displacees
   
   # joining the basedata info with the projection
-  proj3 <-cbind(basedat, as.matrix(proja))
+  proj3 <-cbind(basedat, as.matrix(proja)) %>%
+    cbind(., as.matrix(proj2))
+  colnames(proj3)[8] <- "mean_base"
   # projz <- cbind(basedat, proj2)
   proj3$YEAR <- launch_year + i*5 # setting the year
   
@@ -381,8 +386,8 @@ for (i in 1:STEPS){
     filter(SEX == 2,
            AGE %in% 4:10) %>% # summing the women of childbearing ages
     group_by(STATE, COUNTY, GEOID, COUNTYRACE) %>%
-    dplyr::summarise(`mean` = sum(`mean`),
-                     # `2` = sum(`2`),
+    dplyr::summarise(`mean_mig` = sum(`mean_mig`),
+                     `mean_base` = sum(`mean_base`),
                      # `3` = sum(`3`)
                      ) %>%
     ungroup()
@@ -390,13 +395,13 @@ for (i in 1:STEPS){
   # Declaring variables for men/women. Also calculating the # of newborns
   males$AGE <- 1
   males$SEX <- 1
-  males$`mean` <- males$`mean` * fvar$`Point Forecast` * 0.512
-  # males$`2` <- males$`2` * fvar$`Lo 80` * 0.512
+  males$`mean_mig` <- males$`mean_mig` * fvar$`Point Forecast` * 0.512
+  males$`mean_base` <- males$`mean_base` * fvar$`Point Forecast` * 0.512
   # males$`3` <- males$`3` * fvar$`Hi 80` * 0.512
   females$AGE <- 1
   females$SEX <- 2
-  females$`mean` <- females$`mean` * fvar$`Point Forecast` * 0.488
-  # females$`2` <- females$`2` * fvar$`Lo 80` * 0.488
+  females$`mean_mig` <- females$`mean_mig` * fvar$`Point Forecast` * 0.488
+  females$`mean_base` <- females$`mean_base` * fvar$`Point Forecast` * 0.488
   # females$`3` <- females$`3` * fvar$`Hi 80` * 0.488
 
   # joining them back together and declaring the year.
@@ -408,12 +413,85 @@ for (i in 1:STEPS){
   # Joining the full projection with the rest of the group.
   proj <- rbind(proj, proj3 )
   # Converting back to a data matrix. THis becomes the basepopulation for the next step in the projections
-  proj4 <- proj3[,5] %>% data.matrix
+  proj4red <- proj3[,5] %>% data.matrix
+  proj4  <- proj3[,6] %>% data.matrix
   
+  assign(paste0("pred",i), proj4red)
   assign(paste0("p",i), proj4)
+  
   rm(kids, males, females, proj3, proj4, proj2)
 }
 
+proj <- proj %>%
+  dplyr::select(GEOID, mean_mig:YEAR)
+### Writing projections to the hard drive.
+write_csv(proj, "./R/DATA-PROCESSED/PROJECTIONS/projections_AS.csv")
+
+baseloss <- read_csv("./R/DATA-PROCESSED/basepercentagepoploss.csv") %>%
+  filter(SSP2 == "SSP2",
+         prob2 == "p50")
+
+projsums <- proj %>%
+  # group_by(STATE, COUNTY, GEOID,YEAR) %>%
+  group_by(GEOID, YEAR) %>%
+  dplyr::summarise(mean_mig = sum(mean_mig),
+                   mean_base = sum(mean_base)) %>%
+  left_join(., baseloss %>% dplyr::select(everything(), YEAR = year)) %>%
+  mutate(Inundated = case_when(
+    is.na(Inundated) ~ 1,
+    TRUE ~ 1- Inundated
+  ),
+  mean_inun = Inundated * mean_base) %>%
+  dplyr::select(-`Exp. Ann. Flood`, -`100-year FP`, -prob2) 
+
+write_csv(projsums, "./R/DATA-PROCESSED/PROJECTIONS/projections_TOT.csv")
+
+cnty <- "12086"
+proj_cnty <- projsums[which(projsums$GEOID == cnty),]
+proj_cntya <- proj[which(proj$GEOID == cnty),] %>%
+  mutate(mean_mig = if_else(SEX==1, mean_mig*-1, mean_mig))
+ggplot(proj_cnty) +
+  geom_line(aes(x=YEAR, y = mean_mig), color = "red") +
+  annotate("text", x=2090, y=max(proj_cnty$mean_mig)*0.98, label= "mean_mig", color="red") + 
+  geom_line(aes(x=YEAR, y = mean_base), color = "blue") +
+  annotate("text", x=2090, y=max(proj_cnty$mean_base)*0.95, label= "mean_base", color="blue") + 
+  geom_line(aes(x=YEAR, y = mean_inun), color = "black") +
+  annotate("text", x=2090, y=max(proj_cnty$mean_inun)*0.92, label= "mean_ind", color="black") + 
+  labs(title = paste(cnty))
+
+y2020 <- filter(proj_cntya, YEAR == 2020)
+y2100 <- filter(proj_cntya, YEAR == 2100)
+
+scalelabs <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39",
+               "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80-84", "85+")
+
+ggplot(proj_cntya,aes(x= AGE, y = mean_mig)) +
+  geom_col(data=y2100, aes(fill="2100"), color="black") +
+  geom_segment(data=y2020,
+               aes(x=AGE, 
+                   xend=AGE, 
+                   y=0, 
+                   yend=mean_mig,
+                   color = "2020")) +
+  scale_color_manual(name = "", values = c("2020" = "red")) +
+  scale_fill_manual(name = "", values = c("2100" = NA)) +
+  geom_point(data=y2020, color = "red") + 
+  theme_bw() +
+  theme(legend.position = c(0.9, 0.3),
+        legend.background = element_rect(fill=alpha('white', 0)))+
+  scale_y_continuous(limits = c(-150000, 150000),
+                     breaks = seq(-150000, 150000, 50000),
+                     # labels = paste0(as.character(c(seq(15, 0, -5), seq(5, 15, 5))), "m")
+                     ) +
+  scale_x_continuous(breaks = seq(1,18,1),
+                     sec.axis =dup_axis(),
+                     labels = paste0(scalelabs),
+                     expand = c(0,0.1)) +
+  coord_flip() +
+  annotate("text", x=1, y =100000, label ="Female") +
+  annotate("text", x=1, y =-100000, label ="Male") +
+  labs(y = "Population",
+       x = "")
 
 #### RUN TO THIS POINT ONLY
 

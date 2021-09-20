@@ -25,18 +25,19 @@ years <- data.frame(YEAR = seq(launch_year+5,launch_year+(STEPS*5), 5))
 
 ##############################################################
 # #
-# # DOWNLOADING THE CDC POPULATION ESTIMATES FOR 1969-2016.
+# # DOWNLOADING THE CDC POPULATION ESTIMATES FOR 1969-2019.
 # #
 # # IF RUNNING THIS SCRIPT FOR THE FIRST LINE, Run the download.file line and the gunzip line.
 # #
-# download.file("https://seer.cancer.gov/popdata/yr1990_2018.19ages/us.1990_2018.19ages.adjusted.txt.gz", "R/DATA-RAW/us.1990_2018.19ages.adjusted.txt.gz")
+# download.file("https://seer.cancer.gov/popdata/yr1969_2019.19ages/us.1969_2019.19ages.adjusted.txt.gz",
+#               "R/DATA-RAW/us.1969_2019.19ages.adjusted.txt.gz")
 # # UNZIPPING THE DATA FILE
-# gunzip("R/DATA-RAW/us.1990_2018.19ages.adjusted.txt.gz", overwrite = TRUE, remove = TRUE)
+# gunzip("R/DATA-RAW/us.1969_2019.19ages.adjusted.txt.gz", overwrite = TRUE, remove = TRUE)
 # #
 ###################################################################
 
 # READING THE cdc DATA INTO R. THE DATA ARE IN A SINGLE COLUMN FORMAT AND SO THEY MUST BE BROKEN APART.
-K05_pop<- read.table("R/DATA-RAW/us.1990_2018.19ages.adjusted.txt")
+K05_pop<- read.table("R/DATA-RAW/us.1969_2019.19ages.adjusted.txt")
 K05_pop$STATEID <- substr(K05_pop$V1, 5,6) # SEPARATING THE 2 CHARACTER STATE ABBREVIATION
 K05_pop$STATE <- substr(K05_pop$V1, 7,8) # SEPARATING THE 2-DIGIT STATE CODE
 K05_pop$COUNTY <- substr(K05_pop$V1,9,11) # SEPARATING THE 3-DIGIT COUNTY CODE

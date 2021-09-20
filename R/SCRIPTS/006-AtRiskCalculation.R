@@ -80,3 +80,4 @@ z <- crossing(together3, coeffs) %>%
   mutate(reduce = exp(b * log(1-Inundated) + c * (log(1-Inundated)^2)))
 
 write_csv(z, "./R/DATA-PROCESSED/atriskpops.csv")
+write_csv(together3, "./R/DATA-PROCESSED/basepercentagepoploss.csv")
