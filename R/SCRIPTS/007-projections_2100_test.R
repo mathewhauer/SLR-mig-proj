@@ -351,10 +351,13 @@ for (i in 1:STEPS){
   # for(j in 1:3){
       proj2 <- data_tablef %*% popdat
       projred2 <- data_tablefred %*% popdatred
+      projredbase <- data_tablef %*% popdatred
     # }
     # 
   # migdat <- migs2[which(migs2$step==i),]
-  z<- proj2 - projred2
+  z<- projredbase - projred2
+  # zz<-as.data.table(cbind(as.matrix(proj2), as.matrix(projred2)))
+  # zz$diff = zz[,1] - zz[,2]
   z2 <-cbind(basedat, as.matrix(z)) %>%
     left_join(., migs2)
 
@@ -373,7 +376,7 @@ for (i in 1:STEPS){
     filter(destination %in% toymodel)
   displacees <- z2[,4] %>% data.matrix
   proja <- projred2 + displacees
-  
+  min(proja)
   # joining the basedata info with the projection
   proj3 <-cbind(basedat, as.matrix(proja)) %>%
     cbind(., as.matrix(proj2))
@@ -442,11 +445,12 @@ projsums <- proj %>%
     TRUE ~ 1- Inundated
   ),
   mean_inun = Inundated * mean_base) %>%
-  dplyr::select(-`Exp. Ann. Flood`, -`100-year FP`, -prob2) 
+  dplyr::select(-`Exp. Ann. Flood`, -`100-year FP`, -prob2) %>%
+  mutate(diff = mean_mig-mean_base)
 
 write_csv(projsums, "./R/DATA-PROCESSED/PROJECTIONS/projections_TOT.csv")
 
-cnty <- "12086"
+cnty <- "06081"
 proj_cnty <- projsums[which(projsums$GEOID == cnty),]
 proj_cntya <- proj[which(proj$GEOID == cnty),] %>%
   mutate(mean_mig = if_else(SEX==1, mean_mig*-1, mean_mig))
@@ -479,17 +483,17 @@ ggplot(proj_cntya,aes(x= AGE, y = mean_mig)) +
   theme_bw() +
   theme(legend.position = c(0.9, 0.3),
         legend.background = element_rect(fill=alpha('white', 0)))+
-  scale_y_continuous(limits = c(-150000, 150000),
-                     breaks = seq(-150000, 150000, 50000),
-                     # labels = paste0(as.character(c(seq(15, 0, -5), seq(5, 15, 5))), "m")
-                     ) +
+  # scale_y_continuous(limits = c(-150000, 150000),
+  #                    breaks = seq(-150000, 150000, 50000),
+  #                    # labels = paste0(as.character(c(seq(15, 0, -5), seq(5, 15, 5))), "m")
+  #                    ) +
   scale_x_continuous(breaks = seq(1,18,1),
                      sec.axis =dup_axis(),
                      labels = paste0(scalelabs),
                      expand = c(0,0.1)) +
   coord_flip() +
-  annotate("text", x=1, y =100000, label ="Female") +
-  annotate("text", x=1, y =-100000, label ="Male") +
+  # annotate("text", x=1, y =100000, label ="Female") +
+  # annotate("text", x=1, y =-100000, label ="Male") +
   labs(y = "Population",
        x = "")
 
