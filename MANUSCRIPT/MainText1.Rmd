@@ -349,7 +349,10 @@ plot_grid(a_1, a_2, a_3, a_4, a_5, a_6,
 ### Environmental Migration estimation using the fitted model
 Using $h=log(\Delta P_t)$, we can estimate age-specific changes in CCRs after an environmental event by simply applying the following formula:
 
-$$\hat{CCR_{x,t}} = CCR_{x,t-1} \cdot e^{\hat\beta_xh}$$
+\begin{equation}
+\hat{CCR_{x,t}} = CCR_{x,t-1} \cdot e^{\hat\beta_xh} \label{eq:predCCR}
+\end{equation}
+
 Where $e^{\hat\beta_xh}$ provides the percentage change in $CCR_x$ based on the log($\Delta{P_t}$).In this case, we drop the intercept ($a$) from the estimation procedure to ensure a 0% decline in population yields a corresponding 0% change in the CCR. Simply multiplying the result from the model with the CCR in the year prior yields the anticipated change in the CCR. These changes in CCRs can then be applied to any time series of population values to generate an anticipated population. 
 
 ```{r evalfig, echo= FALSE, message = FALSE, warning = FALSE, fig.cap= paste("\\textbf{Relationship between predicted populations using our model and observed populations in the 48 counties in our selection.} (a) shows the total population and (b) shows the populations for each age/sex group. The diagonal solid line is y=x. The model produces good fits for both the total population and by age/sex group.  \\label{EvalFig}") }
@@ -551,11 +554,25 @@ Using a bathtub model of inundation, we calculate the land area under a given wa
 
 Our full model uses a multiregional leslie matrix with the dimensions 3143 counties, 18 five-year age groups, and 2 sex groups.
 
-Recall that in a typical leslie matrix $$\mathbf{P_{t+1}} = \mathbf{S_t} \cdot \mathbf{P_t}$$ and a multiregional leslie matrix is $$\mathbf{P_{t+1}} = \mathbf{M_t}\mathbf{S_t} \cdot \mathbf{P_t}$$ where $\mathbf{S_t}$ contains the age-sex specific probabilities of surviving and fertility information and $\mathbf{M_t}$ contains the probability of migrating between regions. Since our survival probabilities in $\mathbf{S_t}$ are comprised of cohort-change ratios and our displacement model generates alterations in CCRs, we can specifify three different sets of demographic projections: a projection without incorporating climate migration, a projection incorporating climate migration, and a projection incorporating simple displacement. 
+Recall that in a typical leslie matrix $\mathbf{P_{t+1}} = \mathbf{S_t}\mathbf{P_t}$ and a multiregional leslie matrix is $\mathbf{P_{t+1}} = \mathbf{M_t}\mathbf{S_t}\mathbf{P_t}$ where $\mathbf{S_t}$ contains the age-sex specific probabilities of surviving and fertility information and $\mathbf{M_t}$ contains the probability of migrating between regions. Since our survival probabilities in $\mathbf{S_t}$ are comprised of cohort-change ratios and our displacement model generates alterations in CCRs, we can specifify three different sets of demographic projections: a projection without incorporating climate migration, a projection incorporating climate migration, and a projection incorporating simple displacement. 
 
-A simple demographic projection simply uses the specifications of the leslie matrix laid out in equation \ref{eq:lesliematrix_base}. This produces a set of demographic projections without accounting for climate migration. We refer to this projection as the "base projection."
+A simple demographic projection simply uses the specifications of the leslie matrix laid out in \autoref{eq:lesliematrix_base}. This produces a set of demographic projections without accounting for climate migration. We refer to this projection as the *"base projection."*
 
-We also generate a simple projection that incorporates simple displacement. We produce this by simply multiplying the projected population at time step $t$ by the percentage of population in each county expected to be inundated at each time step.
+We also generate a second, simple projection that incorporates simple displacement. Many climate migration models employ simple displacement models and we recreate those models here. We produce this by simply multiplying the total projected population at time step $t$ in each county by the percentage of population expected to be inundated at each time step. This allows us to evaluate how our integrated models compare to existing approaches in the literature. We refer to this projection as the *"inundation projection."*
+
+Finally, we produce an integrated population projection which we refer to as the *migration projection*. We produce this projection in several steps but the full specification is 
+
+$$
+\mathbf{P_{t+1}} = \mathbf{M_t}(\mathbf{\hat{S_t}}\mathbf{P_t} - \mathbf{S_t}\mathbf{P_t}) + \mathbf{\hat{S_t}}\mathbf{P_t}
+$$
+
+Where $\mathbf{M_t}$ is the matrix containing the probabilities of migrating from county $i$ to county $j$, $\mathbf{\hat{S_t}}$ contains the survival probabilities for each age group $a$ for each county $c$ for each time period $t$ that is reduced following \autoref{eq:predCCR}. In this case, $h$ is the percentage of the population at-risk to SLR. $\mathbf{S_t}$ is the matrix containing the unreduced, or base, survival probabilities.
+
+Essentially, we populate the $S_{act}$ in matrix $\mathbf{\hat{S_t}}$ or the survival probabilities for each age group $a$ for each county $c$ for each time period $t$ using \autoref{eq:predCCR}.We calculate $\hat{CCR_{act}}$ using the percentage of the population at-risk to SLR as the $h$ value. This produces a second set of survival probabilities that are reduced based on SLR and we populate a new leslimatrix ($\mathbf{\hat{S_t}}$) with these new reduced survival probailities ($\hat{S_{act}}$). The difference between the projected population using $\mathbf{\hat{S_t}}$ and using $\mathbf{S_t}$ ($\mathbf{D_t}=\mathbf{\hat{S_t}}\mathbf{P_t} - \mathbf{S_t}\mathbf{P_t}$ with $\mathbf{D_t}$ as the displaced population) represents the anticipated number of people who are inundated by SLR and thus likely to migrate. We then multiply the migration matrix $\mathbf{M_t}$ by the displaced population to produce the number of people migrating between counties by age-sex group. Finally, we simply add these migrants back into the projected population produced with $\mathbf{\hat{S_t}}$.
+
+
+
+
 
 
 
