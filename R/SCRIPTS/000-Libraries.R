@@ -72,7 +72,8 @@ pkgs <- c(
   "Matrix",
   "tictoc",
   "future",
-  "furrr"
+  "furrr",
+  "tidycensus"
   
 )
 

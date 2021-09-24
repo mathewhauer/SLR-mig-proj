@@ -69,7 +69,7 @@ together3 <- rbind(together2, df) %>%
     is.na(Inundated) ~ (lag(Inundated) + lead(Inundated))/2,
     TRUE ~ Inundated)
   ) %>%
-  filter(prob2 == "p50",
+  filter(prob2 == "p95", ###### USING the 95th percentile of RCP 4.5. See https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2014EF000239 TABLE 1 for the SLR amount in 2100
          SSP2 == "SSP2",
          year >=2020)
 

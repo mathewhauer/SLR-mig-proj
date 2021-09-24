@@ -51,4 +51,6 @@ b<- ggplot(mapdat, aes(fill=groups_rel)) +
   theme(legend.position="bottom") +
   labs(fill = "Percent Difference")
 
-plot_grid(a, b, nrow=2, labels = "auto")
+comb <- plot_grid(a, b, nrow=2, labels = "auto")
+
+ggsave("countymap.pdf", comb, height = 12)
