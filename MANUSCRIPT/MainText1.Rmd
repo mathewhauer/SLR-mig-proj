@@ -569,7 +569,7 @@ We also generate a second, simple projection that incorporates simple displaceme
 Finally, we produce an integrated population projection which we refer to as the *migration projection*. We produce this projection in several steps but the full specification is
 
 $$
-\mathbf{P_{t+1}} = \mathbf{M_t}(\mathbf{\hat{S_t}}\mathbf{P_t} - \mathbf{S_t}\mathbf{P_t}) + \mathbf{\hat{S_t}}\mathbf{P_t}
+\mathbf{P_{t+1}} = \underbrace{\underbrace{\mathbf{M_t}(\mathbf{\hat{S_t}}\mathbf{P_t} - \overbrace{\mathbf{S_t}\mathbf{P_t}}^{Base})}_{Inundation} + \mathbf{\hat{S_t}}\mathbf{P_t}}_{Migration}
 $$
 
 Where $\mathbf{M_t}$ is the matrix containing the probabilities of migrating from county $i$ to county $j$, $\mathbf{\hat{S_t}}$ contains the survival probabilities for each age group $a$ for each county $c$ for each time period $t$ that is reduced following \autoref{eq:predCCR}. In this case, $h$ is the percentage of the population at-risk to SLR. $\mathbf{S_t}$ is the matrix containing the unreduced, or base, survival probabilities.
