@@ -3,8 +3,13 @@ set.seed(100)
 source('./R/SCRIPTS/000-Libraries.R')      # loading in the libraries
 source('./R/SCRIPTS/001-fipscodes.R')
 source('./R/SCRIPTS/003-proj_basedataload.R')
+source('./R/SCRIPTS/007-FormatSSPs.R')
 Klaunch <- K05_pop[which(K05_pop$YEAR==launch_year),]
 statelist <- unique(Klaunch$STATE)
+
+
+## SSP data from IIASA
+# unzip(zipfile='./R/DATA-RAW/SspDb_country_data_2013-06-12.csv.zip', exdir = "./R/DATA-RAW")
 
 # gq_2010.csv IS THE RESULT OF 
 gqpop <- read.csv("R/DATA-PROCESSED/gq_2010.csv") %>%
@@ -207,6 +212,7 @@ n02 <- left_join(K05_launch, n02) %>%
 
 ## Putting the CCRs into leslie matrices.
 for (i in 1:STEPS){
+  
     # Making a giant blank leslie matrix to hold all of the info.
     # Dimensions are SIZE (18 age groups) * the length(x) (the number of counties) * 2 (for men/women)
   weird_data <-  Matrix(0, SIZE*length(x)*2,SIZE*length(x)*2, sparse=TRUE)
@@ -315,28 +321,13 @@ for (i in 1:STEPS){
     group_by(GEOID) %>%
     mutate(freq = `freq`/sum(`freq`))
   if(length(setdiff(toymodel, unique(migs2$destination)))>0){
-  missing <- data.frame(destination=  setdiff(toymodel, unique(migs2$destination)),
-    GEOID = '01001',
-    freq = 0)
-  migs2 <- rbind(migs2, missing)
-  rm(missing)
+    missing <- data.frame(destination=  setdiff(toymodel, unique(migs2$destination)),
+      GEOID = '01001',
+      freq = 0)
+    migs2 <- rbind(migs2, missing)
+    rm(missing)
   }
                         
-  
-  # mig3 <- migs2 %>%
-  #   tidyr::expand(new = as.numeric(seq(1:36))) %>%
-  #   left_join(migs2) %>%
-  #   mutate(SEX = as.character(if_else(new<=18,1,2)),
-  #          COUNTYRACE = paste0(origin, "_")) %>%
-  #   ungroup() %>%
-  #   as.data.frame() %>%
-  #   mutate(AGE = case_when(
-  #     new > 18 ~ new-18,
-  #     TRUE ~ new)
-  #   ) %>%
-  #   dplyr::select(GEOID = origin, destination, freq, step, SEX, AGE, COUNTYRACE)
-  
-  
   data_tablef <- get(paste0("S",i)) # getting the Survival matrix
   popdat<- Matrix(get(paste0("p",i-1))) # getting the population vector
   popdatred<- Matrix(get(paste0("pred",i-1))) # getting the population vector
@@ -428,7 +419,46 @@ for (i in 1:STEPS){
 proj <- proj %>%
   dplyr::select(GEOID, mean_mig:YEAR)
 ### Writing projections to the hard drive.
-write_csv(proj, "./R/DATA-PROCESSED/PROJECTIONS/projections_AS.csv")
+# write_csv(proj, "./R/DATA-PROCESSED/PROJECTIONS/projections_AS.csv")
+
+proj <- read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_AS.csv")
+totals <- proj %>%
+  group_by(AGE, SEX, YEAR) %>%
+  dplyr::summarise(tot_mig = sum(mean_mig),
+                   tot_base = sum(mean_base)) 
+totals2 <- left_join(proj, totals) %>%
+  mutate(percentage_mig = (mean_mig/tot_mig),
+         percentage_base = (mean_base/tot_base))
+
+test <- left_join(totals2, SSPs2) %>%
+  mutate(SSP1_BASE = SSP1*percentage_base*1000000,
+         SSP2_BASE = SSP2*percentage_base*1000000,
+         SSP3_BASE = SSP3*percentage_base*1000000,
+         SSP4_BASE = SSP4*percentage_base*1000000,
+         SSP5_BASE = SSP5*percentage_base*1000000,
+         SSP1_MIG = SSP1*percentage_mig*1000000,
+         SSP2_MIG = SSP2*percentage_mig*1000000,
+         SSP3_MIG = SSP3*percentage_mig*1000000,
+         SSP4_MIG = SSP4*percentage_mig*1000000,
+         SSP5_MIG = SSP5*percentage_mig*1000000
+  ) %>%
+  dplyr::select(YEAR, SEX, GEOID, AGE, SSP1_BASE:SSP5_MIG)
+
+test2 <- test %>%
+  group_by(YEAR, GEOID) %>%
+  dplyr::summarise(SSP1_BASE = sum(SSP1_BASE),
+                   SSP2_BASE = sum(SSP2_BASE),
+                   SSP3_BASE = sum(SSP3_BASE),
+                   SSP4_BASE = sum(SSP4_BASE),
+                   SSP5_BASE = sum(SSP5_BASE),
+                   SSP1_MIG = sum(SSP1_MIG),
+                   SSP2_MIG = sum(SSP2_MIG),
+                   SSP3_MIG = sum(SSP3_MIG),
+                   SSP4_MIG = sum(SSP4_MIG),
+                   SSP5_MIG = sum(SSP5_MIG)) %>%
+  gather(Scenario, Population, SSP1:SSP5)
+
+
 
 baseloss <- read_csv("./R/DATA-PROCESSED/basepercentagepoploss.csv") %>%
   filter(SSP2 == "SSP2",
@@ -452,8 +482,34 @@ write_csv(projsums, "./R/DATA-PROCESSED/PROJECTIONS/projections_TOT.csv")
 
 # cnty <- "06081"
 # proj_cnty <- projsums[which(projsums$GEOID == cnty),]
-# proj_cntya <- proj[which(proj$GEOID == cnty),] %>%
-#   mutate(mean_mig = if_else(SEX==1, mean_mig*-1, mean_mig))
+proj_cntya <- test[which(proj$GEOID == cnty),] %>%
+  proj_cntya <- test %>%
+  group_by(YEAR,
+           AGE,
+           GEOID) %>%
+  dplyr::summarise(mean_mig = sum(SSP2_MIG),
+                   mean_base = sum(SSP2_BASE)) %>%
+  group_by(YEAR, GEOID) %>%
+  # mutate(mean_mig = mean_mig/sum(mean_mig),
+  #        mean_base = mean_base / sum(mean_base),
+  #   mean_mig = if_else(SEX==1, mean_mig*-1, mean_mig),
+  #   mean_base = if_else(SEX==1, mean_base*-1, mean_base)
+  #        ) %>%
+  mutate(csum = cumsum(mean_mig),
+         tot = sum(mean_mig),
+         mid = if_else((csum/tot)<=0.5,1,0),
+         midpoint = tot/2,
+         medage = (midpoint-csum)/(mean_mig)*5 + (AGE*5-5),
+         
+         csum_base = cumsum(mean_base),
+         tot_base = sum(mean_base),
+         mid_base= if_else((csum_base/tot_base)<=0.5,1,0),
+         midpoint_base = tot_base/2,
+         medage_base = (midpoint_base-csum_base)/(mean_base)*5 + (AGE*5-5)) %>%
+  # filter(YEAR==2100) %>%
+  filter(mid == 1  | mid_base==1) %>%
+  filter(AGE == max(AGE)) %>%
+  mutate(dif = medage-medage_base)
 # ggplot(proj_cnty) +
 #   geom_line(aes(x=YEAR, y = mean_mig), color = "red") +
 #   annotate("text", x=2090, y=max(proj_cnty$mean_mig)*0.98, label= "mean_mig", color="red") + 
@@ -463,39 +519,51 @@ write_csv(projsums, "./R/DATA-PROCESSED/PROJECTIONS/projections_TOT.csv")
 #   annotate("text", x=2090, y=max(proj_cnty$mean_inun)*0.92, label= "mean_ind", color="black") + 
 #   labs(title = paste(cnty))
 # 
-# y2020 <- filter(proj_cntya, YEAR == 2020)
-# y2100 <- filter(proj_cntya, YEAR == 2100)
+
+proj_cntyb <- test[which(test$GEOID == cnty),] %>%
+  group_by(YEAR, SEX,AGE) %>%
+  dplyr::summarise(mean_mig = sum(SSP2_MIG),
+                   mean_base = sum(SSP2_BASE)) %>%
+  # group_by(YEAR, GEOID) %>%
+  mutate(
+    # mean_mig = mean_mig/sum(mean_mig),
+    #      mean_base = mean_base / sum(mean_base),
+    mean_mig = if_else(SEX==1, mean_mig*-1, mean_mig),
+    mean_base = if_else(SEX==1, mean_base*-1, mean_base)
+         )
+y2020 <- filter(proj_cntyb, YEAR == 2020)
+y2100 <- filter(proj_cntyb, YEAR == 2100)
 # 
-# scalelabs <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39",
-#                "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80-84", "85+")
-# 
-# ggplot(proj_cntya,aes(x= AGE, y = mean_mig)) +
-#   geom_col(data=y2100, aes(fill="2100"), color="black") +
-#   geom_segment(data=y2020,
-#                aes(x=AGE, 
-#                    xend=AGE, 
-#                    y=0, 
-#                    yend=mean_mig,
-#                    color = "2020")) +
-#   scale_color_manual(name = "", values = c("2020" = "red")) +
-#   scale_fill_manual(name = "", values = c("2100" = NA)) +
-#   geom_point(data=y2020, color = "red") + 
-#   theme_bw() +
-#   theme(legend.position = c(0.9, 0.3),
-#         legend.background = element_rect(fill=alpha('white', 0)))+
-#   # scale_y_continuous(limits = c(-150000, 150000),
-#   #                    breaks = seq(-150000, 150000, 50000),
-#   #                    # labels = paste0(as.character(c(seq(15, 0, -5), seq(5, 15, 5))), "m")
-#   #                    ) +
-#   scale_x_continuous(breaks = seq(1,18,1),
-#                      sec.axis =dup_axis(),
-#                      labels = paste0(scalelabs),
-#                      expand = c(0,0.1)) +
-#   coord_flip() +
-#   # annotate("text", x=1, y =100000, label ="Female") +
-#   # annotate("text", x=1, y =-100000, label ="Male") +
-#   labs(y = "Population",
-#        x = "")
+scalelabs <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39",
+               "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80-84", "85+")
+
+ggplot(proj_cntyb,aes(x= AGE, y = mean_mig)) +
+  geom_col(data=y2100, aes(fill="2100"), color="black") +
+  geom_segment(data=y2100,
+               aes(x=AGE,
+                   xend=AGE,
+                   y=0,
+                   yend=mean_base,
+                   color = "Mean_base")) +
+  scale_color_manual(name = "", values = c("Mean_base" = "red")) +
+  scale_fill_manual(name = "", values = c("2100" = NA)) +
+  geom_point(data=y2100, aes(y=mean_base), color = "red") +
+  theme_bw() +
+  theme(legend.position = c(0.9, 0.3),
+        legend.background = element_rect(fill=alpha('white', 0)))+
+  # scale_y_continuous(limits = c(-150000, 150000),
+  #                    breaks = seq(-150000, 150000, 50000),
+  #                    # labels = paste0(as.character(c(seq(15, 0, -5), seq(5, 15, 5))), "m")
+  #                    ) +
+  scale_x_continuous(breaks = seq(1,18,1),
+                     sec.axis =dup_axis(),
+                     labels = paste0(scalelabs),
+                     expand = c(0,0.1)) +
+  coord_flip() +
+  # annotate("text", x=1, y =100000, label ="Female") +
+  # annotate("text", x=1, y =-100000, label ="Male") +
+  labs(y = "Population",
+       x = "")
 
 #### RUN TO THIS POINT ONLY
 # 

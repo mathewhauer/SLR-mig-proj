@@ -68,6 +68,7 @@ knitr::opts_chunk$set(echo  = TRUE)
 # script's filename
 library(knitr)
 read_chunk('../R/SCRIPTS/000-Libraries.R')
+read_chunk('../R/SCRIPTS/101-Figure1ProjLines.R')
 ```
 
 ```{r libraries, include=FALSE}
@@ -579,30 +580,37 @@ Essentially, we populate the $S_{act}$ in matrix $\mathbf{\hat{S_t}}$ or the sur
 # Results
 
 
-```{r MiamiDadeExample, echo= FALSE, message = FALSE, warning = FALSE, fig.cap= paste("\\textbf{A comparison of base, inundation, and migration projections for Miami-Dade County in Florida over the next century with 3ft of SLR.} The inundation model projection refines the previous base model as it accounts for sea-level rise displacement.  Including demographic processes further sophisticates the migration projection. In the case of Miami-Dade County, the migration model reflects both those who emigrated and their lost progeny, indicating a substantial decline in the projected population for 2100 as compared to the base model population. \\label{MiamiDadeFigure}")}
+```{r FigProjLines, echo= FALSE, message = FALSE, warning = FALSE, fig.cap= paste("\\textbf{A comparison of base, inundation, and migration projections for four sample counties over the next century with 3ft of SLR.} The inundation model projection refines the previous base model as it accounts for sea-level rise displacement. Including demographic processes further sophisticates the migration projection. In the case of these example counties, the migration model reflects both those who emigrated and their lost progeny, indicating a substantial decline in the projected population for 2100 as compared to the base model population. \\label{MiamiDadeFigure}")}
 
 projsums<-read_csv("../R/DATA-PROCESSED/PROJECTIONS/projections_TOT.csv")
-
+# 
 cnty <- "12086"
 proj_cnty <- projsums[which(projsums$GEOID == cnty),]
-
-
-
-
-ggplot(data=proj_cnty, aes(x=YEAR, y=POPULATION)) +
-  geom_line(aes(x=YEAR, y = mean_mig), color = "red") +
-  annotate("text", x=2081, y=max(proj_cnty$mean_mig)*0.98, label= "Migration", color="red") +
-  geom_line(aes(x=YEAR, y = mean_base), color = "black") +
-  annotate("text", x=2086, y=max(proj_cnty$mean_base)*0.95, label= "Base", color="black") +
-  geom_line(aes(x=YEAR, y = mean_inun), color = "deepskyblue3") +
-  annotate("text", x=2093, y=max(proj_cnty$mean_inun)*0.92, label= "Inundation", color="deepskyblue3") +
-  scale_y_continuous(labels = scales::comma) +
-  labs(title = "Miami-Dade County, Florida Projections")+
-  theme_bw()+
-  NULL
+# 
+# 
+# 
+# 
+# ggplot(data=proj_cnty, aes(x=YEAR, y=POPULATION)) +
+#   geom_line(aes(x=YEAR, y = mean_mig), color = "red") +
+#   annotate("text", x=2081, y=max(proj_cnty$mean_mig)*0.98, label= "Migration", color="red") +
+#   geom_line(aes(x=YEAR, y = mean_base), color = "black") +
+#   annotate("text", x=2086, y=max(proj_cnty$mean_base)*0.95, label= "Base", color="black") +
+#   geom_line(aes(x=YEAR, y = mean_inun), color = "deepskyblue3") +
+#   annotate("text", x=2093, y=max(proj_cnty$mean_inun)*0.92, label= "Inundation", color="deepskyblue3") +
+#   scale_y_continuous(labels = scales::comma) +
+#   labs(title = "Miami-Dade County, Florida Projections")+
+#   theme_bw()+
+#   NULL
 
 ```
 
+
+```{r include=FALSE}
+projsums<-read_csv("../R/DATA-PROCESSED/PROJECTIONS/projections_TOT.csv")
+# 
+cnty <- "12086"
+proj_cnty <- projsums[which(projsums$GEOID == cnty),]
+```
 Here we show preliminary, selected results assuming 3 feet of SLR by 2100. \autoref{MiamiDadeFigure} shows comparative results for Miami-Dade County. We compare three separate projection models. Our `Base` model shows a population projection without accounting for climate-migration. Without accounting for climate-migration, we would project Miami-Dade's population to increase from `r label_number_si(accuracy=0.1)(proj_cnty$mean_base[which(proj_cnty$YEAR==2020)])` in 2020 to `r label_number_si(accuracy=0.1)(proj_cnty$mean_base[which(proj_cnty$YEAR==2100)])` in 2100. Using a simple displacement model (labelled as `Inundation` in the figure), we would project the 2100 population to be `r label_number_si(accuracy=0.1)(proj_cnty$mean_inun[which(proj_cnty$YEAR==2100)])` -- a decrease of `r label_number_si(accuracy=1)(proj_cnty$mean_base[which(proj_cnty$YEAR==2100)] - proj_cnty$mean_inun[which(proj_cnty$YEAR==2100)])` people, reflecting a direct displacement of nearly a quarter of a million people by 2100 with 3ft of SLR. However, this type of simple displacement model is relatively common in the prospective modeling literature concerning climate migration but does not account for underlying population dynamics.
 
 Our third model, labeled `Migration`, accounts for underlying demographic processes. In this model, climate migrants are able to reproduce, have children, move to other areas, experience mortality, etc. Under our `Migration` model, we project Miami-Dade's population to be `r label_number_si(accuracy=0.1)(proj_cnty$mean_mig[which(proj_cnty$YEAR==2100)])` in 2100 -- a major decrease of `r label_number_si(accuracy=0.1)(proj_cnty$mean_base[which(proj_cnty$YEAR==2100)] - proj_cnty$mean_mig[which(proj_cnty$YEAR==2100)])`. Here, when accounting for population dynamics, the actual population change becomes considerably larger than the simple displacement models in the climate migration literature.
