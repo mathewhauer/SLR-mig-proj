@@ -73,7 +73,8 @@ pkgs <- c(
   "tictoc",
   "future",
   "furrr",
-  "tidycensus"
+  "tidycensus",
+  "ggalt"
   
 )
 
