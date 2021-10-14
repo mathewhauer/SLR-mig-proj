@@ -1,7 +1,7 @@
 ###------Figure MedianAge-----
 ## @knitr MedAge
 
-proj <- read_csv("../R/DATA-PROCESSED/PROJECTIONS/projections_AS_controlled.csv")
+proj <- read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_AS_controlled.csv")
 
 proj2 <- proj %>%
   group_by(GEOID, YEAR, AGE) %>%
@@ -43,15 +43,20 @@ proj3$name <- factor(proj3$ID, levels=as.character(proj3$ID))
 
 lollipop <-    ggplot(proj3, aes(x= `medage_mig`, xend = `medage_base`, y = name, group = name)) +
   geom_dumbbell(color="#b2b2b2", 
-                colour_x = "red", colour_xend = "blue",
-                size=2) +
+                colour_x = "red", colour_xend = "black",
+                size=0.5) +
   theme_bw() +
   labs(x = "Median Age",
        y = "") +
   annotate("text", y = "Allen, LA", x = 57.5, label = "• Migration", color = "red",
-           hjust = 0) +
-  annotate("text", y = "Effingham, GA", x = 57.5, label = "• Base", color = "blue",
-           hjust = 0) +
+           hjust = 0, size =2) +
+  annotate("text", y = "Effingham, GA", x = 57.5, label = "• Base", color = "black",
+           hjust = 0, size=2) +
+  theme(axis.text.x = element_text(size=4),
+axis.text.y = element_text(size=4),
+axis.title.x = element_text(size=5),
+axis.title.y = element_text(size=5)) +
+  geom_hline(yintercept= 10.5) +
   NULL
 
 
@@ -77,15 +82,16 @@ a <- proj_growdec[which(proj_growdec$YEAR == 2100),] %>%
 # plot(a$diff, a$diff2)
 
 b<- ggplot(a, aes(x= diff, y = diff2)) +
-  geom_point() +
-  geom_smooth() +
+  geom_point(size=0.5, alpha = 0.5) +
+  geom_smooth(size = 0.5) +
   theme_bw() +
   scale_x_continuous(labels = scales::percent) +
   labs(x= "\u0394 % Population",
        y="\u0394 Median Age",
-       title = "2100")
+       title = "2100") +
+  theme()
 
-projsums<-read_csv("../R/DATA-PROCESSED/PROJECTIONS/projections_TOT_controlled.csv") %>%
+projsums<-read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_TOT_controlled.csv") %>%
   mutate(rel = diff / SSP2_BASE) %>%
   left_join(., fipslist)
 
@@ -117,20 +123,32 @@ figure_countyproj <- function(cnty){
          y = "Population",
          x = "Year") +
     theme_bw()+
-    theme(plot.title = element_text(size=7),
-          axis.text.x = element_text(size=7),
-          axis.text.y = element_text(size=7),
-          axis.title.x = element_text(size=8),
-          axis.title.y = element_text(size=8)) +
+    theme(plot.title = element_text(size=3),
+          axis.text.x = element_text(size=3),
+          axis.text.y = element_text(size=3),
+          axis.title.x = element_text(size=4),
+          axis.title.y = element_text(size=4)) +
     NULL
 }
 
 c<- figure_countyproj("22023")
 
 right <- plot_grid(b + theme(
-  axis.text.x = element_text(size=6),
-  axis.text.y = element_text(size=6),
-  axis.title.x = element_text(size=7),
-  axis.title.y = element_text(size=7)),c,ncol=2,labels=c("b", "c"))
+  axis.text.x = element_text(size=3),
+  axis.text.y = element_text(size=3),
+  axis.title.x = element_text(size=4),
+  axis.title.y = element_text(size=4),
+  plot.title = element_text(size=5)),
+  c + theme(
+    axis.text.x = element_text(size=3),
+    axis.text.y = element_text(size=3),
+    axis.title.x = element_text(size=4),
+    axis.title.y = element_text(size=4),
+    plot.title = element_text(size=5))
+  ,ncol=2,labels=c("b", "c"))
 
 plot_grid(lollipop, right, ncol=1, labels = c("a", ""), rel_heights=c(1.5, 1))
+
+ggsave("./MANUSCRIPT/MainDocument/FigAging.pdf", 
+       width = 3.42, height=2.4,
+       device=cairo_pdf)

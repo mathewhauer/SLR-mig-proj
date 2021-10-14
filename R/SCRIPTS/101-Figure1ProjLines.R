@@ -1,9 +1,10 @@
 ###------Figure Proj Lines-----
 ## @knitr FigProjLines
-projsums<-read_csv("../R/DATA-PROCESSED/PROJECTIONS/projections_TOT_controlled.csv") %>%
+# source('./R/SCRIPTS/001-fipscodes.R')
+projsums<-read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_TOT_controlled.csv") %>%
   mutate(rel = diff / SSP2_BASE) %>%
   left_join(., fipslist)
-# source('../R/SCRIPTS/001-fipscodes.R')
+
 
 demotrapped <- projsums %>%
   filter(diff <0,
@@ -55,7 +56,7 @@ figure_countyproj <- function(cnty){
           axis.title.y = element_text(size=8)) +
     NULL
 }
-# figure_countyproj("06001")
+# figure_countyproj("39049")
 # figure_countyproj("37183")
 
 loss_miami <- figure_countyproj("12086")
@@ -68,10 +69,10 @@ vul_Chesa <- figure_countyproj("51550")
 vul_Browa <- figure_countyproj("12011")
 vul_Queen <- figure_countyproj("36081")
 
-dest_Orla <- figure_countyproj("12095")
-dest_Lafa <- figure_countyproj("22055")
+dest_Orla <- figure_countyproj("37021")
+dest_Lafa <- figure_countyproj("06061")
 dest_Stan <- figure_countyproj("06099")
-dest_wake <- figure_countyproj("37183")
+dest_wake <- figure_countyproj("36029")
 
 titlecol <- "Dark Green"
 losstitle <- ggplot() + 
@@ -83,7 +84,7 @@ losses <- plot_grid(loss_miami, loss_Beau,
                     #loss_Calic, 
                     loss_Poqu,
                     ncol=3)
-losses <- plot_grid(losstitle, losses, ncol=1, rel_heights = c(0.15, 1))
+losses <- plot_grid(losstitle, losses, ncol=1, rel_heights = c(0.2, 1))
 
 dest1title <- ggplot() + 
   labs(title = "Recipient Counties") +
@@ -91,7 +92,7 @@ dest1title <- ggplot() +
   theme(plot.title = element_text(color = titlecol,hjust = 0.5))
 dest1 <- plot_grid(vul_Baton, #vul_Chesa,
                    vul_Browa, vul_Queen, ncol=3)
-dest1 <- plot_grid(dest1title, dest1, ncol=1, rel_heights = c(0.15, 1))
+dest1 <- plot_grid(dest1title, dest1, ncol=1, rel_heights = c(0.2, 1))
 
 dest2title <- ggplot() + 
   labs(title = "Climate Destinations") +
@@ -99,7 +100,9 @@ dest2title <- ggplot() +
   theme(plot.title = element_text(color = titlecol,hjust = 0.5))
 dest2 <- plot_grid(dest_Lafa,
                    dest_Orla, dest_wake, ncol=3)
-dest2 <- plot_grid(dest2title, dest2, ncol=1, rel_heights = c(0.15, 1))
+dest2 <- plot_grid(dest2title, dest2, ncol=1, rel_heights = c(0.2, 1))
 
 plot_grid(losses, dest1, dest2,
           ncol=1)
+
+ggsave("./MANUSCRIPT/MainDocument/FigProjLines.pdf", width=7, height=4.5)
