@@ -39,7 +39,7 @@ conflict_of_interest: |
   The authors declare no conflict of interest.
 
 abstract: |
-  The warnings of sea-level rise driven migration first appeared in the scientific literature in the late 1970s when increased recognition that disintegrating ice sheets could drive people to migrate from coastal cities.  Here, we combine demographic models, flood hazard models, and a machine learning model built on 40 years of environmental migration in the US to project the US population distribution of US counties, accounting for anticipated demographic change, migration probabilities, and sea-level rise. We find that population momentum results suggest that the demographic implications of climate migration go far beyond simple displacement estimates, as population momentum from climate migrants multiplies the demographic effects in both origin and destination areas.
+  The warnings of sea-level rise (SLR) driven migration first appeared in the scientific literature in the late 1970s when increased recognition that disintegrating ice sheets could drive people to migrate from coastal cities. Since that time, scientists have modelled potential SLR driven migration without integrating other population processes, potentially obscuring the total demographic impact of SLR migration. If sea-level rise forces millions of people further inland, a potential domino effect could result, further enhancing migration to more distant locations and further suppressing migration to coastal areas. Older populations are also the least likely to migrate and SLR migration could accelerate population aging in coastal areas. Here, we investigate both the potential domino effect of SLR migration and the potential emergence of "demographically stuck" populations by combining matrix population models, flood hazard models, and a machine learning model built on 40 years of environmental migration in the US to project the US population distribution of US counties, accounting for anticipated demographic change, migration probabilities, and sea-level rise. We find that the total demographic impact of 0.9m of SLR in 2100 is nearly 13 million people -- four times the number of migrants -- under SSP2 and the 95h percentile of RCP4.5. We project a significant "hollowing" of coastal age structures as youthful populations migrate but older populations remain. The potential for "demographically stuck" populations has received scant attention but could occur in heavily impacted areas. Furthermore, our population projection approach can be easily adapted to investigate additional or multiple climate hazards.
  
 
 
@@ -47,14 +47,13 @@ significance: |
   Authors must submit a 120-word maximum statement about the significance of their research paper written at a level understandable to an undergraduate educated scientist outside their field of speciality. The primary goal of the Significance Statement is to explain the relevance of the work in broad context to a broad readership. The Significance Statement appears in the paper itself and is required for all research papers.
 
 acknowledgements: |
-  Please include your acknowledgments here, set in a single paragraph. Please do not include any acknowledgments in the Supporting Information, or anywhere else in the manuscript.
+  This work was supported by the State of Louisiana, the American Society of Adaptation Professionals, the New York State Energy Research & Development Authority, and the Great Lakes Integrated Sciences & Assessment. We would like to thank T. Gill, N. Nagle, A. Moulton, S. Bohon, and C. Schmertmann for their early feedback and assistance. Thank you!
 
 keywords:
-  - one
-  - two
-  - optional
-  - optional
-  - optional
+  - Climate Migration
+  - Sea-level Rise
+  - Demography
+  - Multiregional Population Projections
 
 ## must be one of: pnasresearcharticle (usual two-column layout), pnasmathematics (one column layout), or pnasinvited (invited submissions only)
 pnas_type: pnasresearcharticle
