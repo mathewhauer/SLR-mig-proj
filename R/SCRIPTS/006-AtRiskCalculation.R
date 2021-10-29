@@ -49,8 +49,18 @@ together <- rbindlist( temp ) %>%
 together2 <- left_join(together, controlled, by = c("GEOID", "year", "SSP2")) %>%
   pivot_longer(cols = c(`Exp. Ann. Flood`:`100-year FP`), names_to = "Var",
                values_to = "AtRisk") %>%
-  mutate(PerAtRisk = AtRisk/proj) %>%
+  filter(year>=2020) %>%
+  group_by(GEOID, SSP2, Var) %>%
+  mutate(PerAtRisk = AtRisk/proj,
+         # inc = PerAtRisk - lag(PerAtRisk)
+         ) %>%
   dplyr::select(-proj, -AtRisk) %>%
+  # mutate(inc = case_when(
+  #   year == 2020 ~ 0,
+  #   TRUE ~ inc
+  # )) %>%
+  # mutate(PerAtRisk = cumsum(inc)) %>%
+  # dplyr::select(-inc) %>%
   pivot_wider(names_from = Var, values_from = PerAtRisk) 
 
 ## Creating a new dataframe that contains the off-years. Climate Central's data is in 10-year increments.
