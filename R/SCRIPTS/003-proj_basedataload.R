@@ -7,7 +7,7 @@
 GROUPING <- c("STATE", "COUNTY", "YEAR", "AGE", "SEX")
 
 # TEST YEAR IS SET TO 2020
-test_year = 2015
+test_year = 2019
 
 # LAUNCH YEAR IS THE SAME AS THE TEST YEAR
 launch_year = test_year
@@ -73,7 +73,7 @@ K05_pop$COUNTYRACE <- paste0(K05_pop$GEOID, "_", K05_pop$RACE) # CREATING A UNIQ
 
 # SEPARATING OUT THE LAUNCH POPULATION AND SUMMING TO THE COUNTY TOTAL.
 K05_launch <- K05_pop[which(K05_pop$YEAR == launch_year),] %>%
-  group_by(STATE, COUNTY, GEOID, YEAR) %>%
+  group_by(STATE, COUNTY, GEOID, YEAR, COUNTYRACE) %>%
   dplyr::summarise(POPULATION = sum(POPULATION)) %>%
   ungroup()
 
