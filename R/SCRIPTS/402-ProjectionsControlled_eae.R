@@ -3,12 +3,35 @@ source('./R/SCRIPTS/001-fipscodes.R')
 proj <- read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_AS_eae_MSP.csv")
 totals <- proj %>%
   group_by(AGE, SEX, prob, YEAR) %>%
-  dplyr::summarise(tot_mig = sum(mean_mig),
-                   tot_base = sum(mean_base)) 
+  dplyr::summarise(tot_base = sum(mean_base)) 
 totals2 <- left_join(proj, totals) %>%
-  mutate(percentage_mig = (mean_mig/tot_mig),
-         percentage_base = (mean_base/tot_base),
+  mutate(percentage_base = (mean_base/tot_base),
          SEX = as.numeric(SEX))
+
+test <- left_join(totals2, SSPs2) %>%
+  mutate(SSP1_BASE = SSP1*percentage_base*1000000,
+         SSP2_BASE = SSP2*percentage_base*1000000,
+         SSP3_BASE = SSP3*percentage_base*1000000,
+         SSP4_BASE = SSP4*percentage_base*1000000,
+         SSP5_BASE = SSP5*percentage_base*1000000
+  ) %>%
+  dplyr::select(YEAR, SEX, GEOID, AGE, prob, SSP1_BASE:SSP5_BASE)
+
+
+proj2 <- proj
+proj2$per <- proj2$mean_mig / proj2$mean_base
+proj2 <- dplyr::select(proj2, -mean_base,-mean_mig)
+proj2[mapply(is.nan, proj2)] <- NA
+proj2[mapply(is.infinite, proj2)] <- NA
+proj2[is.na(proj2)] <-1
+
+test <- left_join(test, proj2)
+test <- test %>%
+  mutate(SSP1_MIG = SSP1_BASE * per,
+         SSP2_MIG = SSP2_BASE * per,
+         SSP3_MIG = SSP3_BASE * per,
+         SSP4_MIG = SSP4_BASE * per,
+         SSP5_MIG = SSP5_BASE * per)
 
 test <- left_join(totals2, SSPs2) %>%
   mutate(SSP1_BASE = SSP1*percentage_base*1000000,
@@ -136,6 +159,6 @@ projsums2 <- left_join(projsums, proj_inun3)%>%
          Inundated_max = ifelse(is.na(Inundated_max), Base_max, Inundated_max),
          Inundated_min = ifelse(is.na(Inundated_min), Base_min, Inundated_min))
 
-write_csv(projsums2, "./R/DATA-PROCESSED/PROJECTIONS/projections_TOT_controlled_eae_MSP.csv")
+write_csv(projsums2, "./R/DATA-PROCESSED/PROJECTIONS/projections_TOT_controlled_MSP.csv")
 
-write_csv(test, "./R/DATA-PROCESSED/PROJECTIONS/projections_AS_controlled_eae_MSP.csv")
+write_csv(test, "./R/DATA-PROCESSED/PROJECTIONS/projections_AS_controlled_MSP.csv")

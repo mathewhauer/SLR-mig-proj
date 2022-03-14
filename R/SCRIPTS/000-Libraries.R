@@ -61,7 +61,6 @@ pkgs <- c(
   "bsts",
   "CausalImpact",
   "kableExtra",
-  "lettercase",
   "philentropy",
   "ggridges",
   "janitor",
@@ -74,7 +73,8 @@ pkgs <- c(
   "future",
   "furrr",
   "tidycensus",
-  "ggalt"
+  "ggalt",
+  "tsoutliers"
   
 )
 
@@ -107,3 +107,5 @@ write.excel <- function(x,row.names=FALSE,col.names=TRUE,...) {
 
 arima_order <- c(0,1,1) # setting the global arima model
 arma <- "ARIMA(0,1,1)"
+
+gc(reset=TRUE)

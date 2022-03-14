@@ -1,7 +1,7 @@
 ###------Figure Proj Lines-----
 ## @knitr FigProjLines
 # source('./R/SCRIPTS/001-fipscodes.R')
-projsums<-read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_TOT_controlled_eae_MSP.csv") %>%
+projsums<-read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_TOT_controlled_MSP.csv") %>%
   mutate(rel = diff / SSP2_BASE) %>%
   left_join(., fipslist) %>%
   mutate(displaced = (1-Inundated)* SSP2_BASE) %>%
@@ -51,21 +51,26 @@ proj_ssp2 <- proj2 %>%
   dplyr::select(groupings, YEAR,Migration, Base, Inundation) %>%
   pivot_longer(cols = c(Migration, Base, Inundation), names_to ="SSP2")
 proj_min <- proj2 %>%
-  filter(prob == "p5") %>%
+  # filter(prob == "p5") %>%
   ungroup() %>%
   dplyr::select(groupings, YEAR, Migration_Lower, Base_Lower, Inundation_Lower) %>%
   pivot_longer(cols = c(Migration_Lower, Base_Lower, Inundation_Lower), names_to ="SSP2", values_to = "Lower") %>%
   separate(SSP2, c("SSP2", "drop"), sep = "_") %>%
-  dplyr::select(-drop)
+  dplyr::select(-drop)%>%
+  group_by(YEAR, SSP2) %>%
+  filter(Lower == min(Lower))
 proj_max <- proj2 %>%
-  filter(prob == "p95") %>%
+  # filter(prob == "p95") %>%
   ungroup() %>%
   dplyr::select(groupings, YEAR, Migration_Upper, Base_Upper, Inundation_Upper) %>%
   pivot_longer(cols = c(Migration_Upper, Base_Upper, Inundation_Upper), names_to ="SSP2", values_to = "Upper") %>%
   separate(SSP2, c("SSP2", "drop"), sep = "_") %>%
-  dplyr::select(-drop)  
+  dplyr::select(-drop)    %>%
+  group_by(YEAR, SSP2) %>%
+  filter(Upper == max(Upper))
 proj2 <- left_join(proj_ssp2, proj_min) %>%
-  left_join(., proj_max)
+  left_join(., proj_max) %>%
+  unique()
 
 suf <- " M"
 sca <- 1e-6
@@ -140,21 +145,26 @@ figure_countyproj <- function(cnty){
     dplyr::select(YEAR,Migration, Base, Inundation) %>%
     pivot_longer(cols = c(Migration, Base, Inundation), names_to ="SSP2")
   proj_min <- proj_cnty %>%
-    filter(prob == "p5") %>%
+    # filter(prob == "p5") %>%
     ungroup() %>%
     dplyr::select(YEAR, Migration_Lower, Base_Lower, Inundation_Lower) %>%
     pivot_longer(cols = c(Migration_Lower, Base_Lower, Inundation_Lower), names_to ="SSP2", values_to = "Lower") %>%
     separate(SSP2, c("SSP2", "drop"), sep = "_") %>%
-    dplyr::select(-drop)
+    dplyr::select(-drop) %>%
+    group_by(YEAR, SSP2) %>%
+    filter(Lower == min(Lower))
   proj_max <- proj_cnty %>%
-    filter(prob == "p95") %>%
+    # filter(prob == "p95") %>%
     ungroup() %>%
     dplyr::select(YEAR, Migration_Upper, Base_Upper, Inundation_Upper) %>%
     pivot_longer(cols = c(Migration_Upper, Base_Upper, Inundation_Upper), names_to ="SSP2", values_to = "Upper") %>%
     separate(SSP2, c("SSP2", "drop"), sep = "_") %>%
-    dplyr::select(-drop)  
+    dplyr::select(-drop)  %>%
+    group_by(YEAR, SSP2) %>%
+    filter(Upper == max(Upper))
   proj2 <- left_join(proj_ssp2, proj_min) %>%
-    left_join(., proj_max)
+    left_join(., proj_max) %>%
+    unique()
   
   nam <- paste0(projsums[which(projsums$GEOID==cnty),]$NAME, ", ",
                 projsums[which(projsums$GEOID==cnty),]$state)
@@ -200,7 +210,7 @@ loss_Beau <- figure_countyproj("12109")
 vul_Baton <- figure_countyproj("47149")
 vul_Chesa <- figure_countyproj("13191")
 vul_Browa <- figure_countyproj("36061")
-vul_Queen <- figure_countyproj("51119")
+vul_Queen <- figure_countyproj("51133")
 
 dest_Orla <- figure_countyproj("08035")
 dest_Lafa <- figure_countyproj("41067")

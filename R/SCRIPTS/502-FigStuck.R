@@ -2,7 +2,7 @@
 ## @knitr MedAge
 
 source('./R/SCRIPTS/001-fipscodes.R')
-proj <- read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_AS_controlled_eae_MSP.csv")
+proj <- read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_AS_controlled_MSP.csv")
 
 proj2 <- proj %>%
   group_by(GEOID, YEAR, AGE, prob) %>%
@@ -110,9 +110,9 @@ red <- reductions %>%
   unique() %>%
   mutate(Inundated = 1-Inundated)
 
-proj <- read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_AS_controlled_eae_MSP.csv")
+proj <- read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_AS_controlled_MSP.csv")
 proj2 <- proj %>%
-  group_by(GEOID, YEAR, AGE, prob) %>%
+  group_by(GEOID, YEAR, AGE, prob,SEX) %>%
   dplyr::summarise(mean_mig = sum(SSP2_MIG),
                    mean_base= sum(SSP2_BASE)) %>%
   ungroup() %>%
@@ -124,20 +124,40 @@ proj2 <- proj %>%
     Inundated >=0 ~ "Coastal",
     is.na(Inundated) ~ "Inland"
   )) %>%
-  group_by(AGE, groupings,YEAR, prob) %>%
+  group_by(AGE, groupings,YEAR,SEX, prob) %>%
   dplyr::summarise(trapped = sum(diff))
 
 figdat <- proj2 %>%
-  filter(AGE >=17,
-         groupings == "Coastal") %>%
-  group_by(YEAR, prob) %>%
-  dplyr::summarise(stuck = sum(trapped))
+  filter(groupings == "Coastal",
+         AGE >= 17) %>%
+  # mutate(agegroups = case_when(
+  #   AGE >= 17 ~ "age 75+",
+  #   AGE %in% c(5,6,7,8,9,10,11,12,13) ~ "age 20-65"
+  # )) %>%
+  group_by(YEAR, prob, SEX) %>%
+  dplyr::summarise(stuck = sum(trapped)) %>%
+  mutate(SEX = ifelse(SEX==1, "Men", "Women")) %>%
+  na.omit
 
-c<- ggplot(figdat[which(figdat$prob=="p50"),], aes(x=YEAR, y= stuck)) +
+stucktext <- figdat %>%
+  group_by(prob, YEAR) %>%
+  dplyr::summarise(stuck = sum(stuck))
+
+c<- 
+  ggplot(figdat[which(figdat$prob=="p50"),], aes(x=YEAR, y= stuck, fill= SEX)) +
   geom_bar(stat="identity") +
+  # geom_dl(aes(label = agegroups), method= "top.points") +
   scale_y_continuous(labels = scales::comma,
-                     limits = c(0,max(figdat$stuck[which(figdat$prob=="p50")]))) +
+                      breaks = c(seq(0,225000,50000)),
+                     limits = c(0,230000) )+
+  #                    # limits = c(0,max(figdat$stuck[which(figdat$prob=="p50")]))) +
+  scale_x_continuous(limits = c(2020,2107)) +
+  scale_fill_manual(values = c("dark blue", "dark red")) +
+  annotate("text", x = 2106, y = 200000, label = "Men", color = "dark blue", size=1) +
+  annotate("text", x = 2106, y = 100000, label = "Women", color = "dark red",size=1) +
   theme_bw() +
+  theme(legend.position="none") +
+  # guides()
   labs(x="Year",
        y= "Population",
        title = "'Demographically Stuck' aged 75+")
@@ -168,7 +188,10 @@ plot_grid(b + theme(
   axis.text.y = element_text(size=3),
   axis.title.x = element_text(size=4),
   axis.title.y = element_text(size=4),
-  plot.title = element_text(size=5)), ncol=1, labels = c("a", "b"), rel_heights=c(1, 1))
+  plot.title = element_text(size=5),
+  panel.grid.minor = element_blank()), ncol=1, labels = c("a", "b"), rel_heights=c(1, 1))
+
+b
 
 ggsave("./MANUSCRIPT/MainDocument/FigAging3.pdf", 
        width = 2.4, height=2.4,
