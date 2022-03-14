@@ -47,3 +47,5 @@ source('./R/502-FigStuck.R')
 source('./R/503-MapPopChange.R')
 # Text Statistics
 source('./R/504-TextStatistics.R')
+# Table
+source('./R/SSPRCPMatrixTable.R')
