@@ -67,8 +67,32 @@ CCRs[mapply(is.infinite, CCRs)] <- NA
 CCRs[mapply(is.nan, CCRs)] <- NA
 CCRs[is.na(CCRs)] <-0
 
+CCRs <- CCRs %>%
+  group_by(GEOID, SEX) %>%
+  mutate(ccr1 = rollapply(ccr1, 5, mean, align='right', fill=NA),
+         ccr2 = rollapply(ccr2, 5, mean, align='right', fill=NA),
+         ccr3 = rollapply(ccr3, 5, mean, align='right', fill=NA),
+         ccr4 = rollapply(ccr4, 5, mean, align='right', fill=NA),
+         ccr5 = rollapply(ccr5, 5, mean, align='right', fill=NA),
+         ccr6 = rollapply(ccr6, 5, mean, align='right', fill=NA),
+         ccr7 = rollapply(ccr7, 5, mean, align='right', fill=NA),
+         ccr8 = rollapply(ccr8, 5, mean, align='right', fill=NA),
+         ccr9 = rollapply(ccr9, 5, mean, align='right', fill=NA),
+         ccr10 = rollapply(ccr10, 5, mean, align='right', fill=NA),
+         ccr11 = rollapply(ccr11, 5, mean, align='right', fill=NA),
+         ccr12 = rollapply(ccr12, 5, mean, align='right', fill=NA),
+         ccr13 = rollapply(ccr13, 5, mean, align='right', fill=NA),
+         ccr14 = rollapply(ccr14, 5, mean, align='right', fill=NA),
+         ccr15 = rollapply(ccr15, 5, mean, align='right', fill=NA),
+         ccr16 = rollapply(ccr16, 5, mean, align='right', fill=NA),
+         ccr17 = rollapply(ccr17, 5, mean, align='right', fill=NA),
+         ccr18 = rollapply(ccr18, 5, mean, align='right', fill=NA),
+         )
+
+a <- CCRs2 %>% dplyr::select(-X01:-X18)
 # A function to project the CCRs/CCDs
 predccr = function(ccr, sex, x, DF){
+
   y <- as_data_frame(DF[[as.character(ccr)]][which(DF$COUNTYRACE == x & DF$SEX == sex )])
   # y <- as_data_frame(CCRs[[as.character("ccr1")]][which(CCRs$COUNTYRACE == x2[j] & CCRs$SEX == "2" )])
   
@@ -101,7 +125,7 @@ projectccrs <- function(j){
   # print(x2[j])
   print(j) 
   BACCRl <- list()
-  state <- unique(CCRs$STATE[which(CCRs$COUNTYRACE == j)])
+  state <- substr(j,1,2)
   for (i in 1:(SIZE)){
    
       data_tablef <- as.data.table(cbind(ccr=paste0("ccr",i),
@@ -130,5 +154,5 @@ z <- lapply(x2, projectccrs)
 BACCR <- rbindlist(z)
 # # Sorting the output.
 BACCR2 <- as.data.frame(BACCR %>% arrange(COUNTYRACE, as.numeric(step), SEX, as.numeric(ccr)))
-BACCR <- read_
-write_rds(BACCR, "./R/DATA-PROCESSED/BACCR.R")
+# BACCR <- read_
+write_rds(BACCR2, "./R/DATA-PROCESSED/BACCR_2015.R")

@@ -87,4 +87,4 @@ for (i in 1:STEPS){
   }
 }
 
-write_csv(proj, "./R/DATA-PROCESSED/PROJECTIONS/projections_AS_eae_MSP.csv")
+write_csv(proj, "./R/DATA-PROCESSED/PROJECTIONS/projections_AS_MSP_5yrma.csv")

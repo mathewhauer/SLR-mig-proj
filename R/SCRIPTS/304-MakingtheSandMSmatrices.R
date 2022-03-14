@@ -34,7 +34,7 @@ reductions$COUNTYRACE <- paste0(reductions$GEOID, "_", reductions$RACE)
 ## Will produce a data file containing the Unaffected CCRs and the reduced CCRs
 type1 <- "reduce_in"
 type2 = "mean_in"
-BACCR <- read_rds("./R/DATA-PROCESSED/BACCR.R")  %>%
+BACCR <- read_rds("./R/DATA-PROCESSED/BACCR_2015.R")  %>%
   filter(COUNTYRACE %in% x) %>%
   arrange(COUNTYRACE, as.numeric(step), SEX, as.numeric(ccr))
 BACCRreduce1 <- NULL
@@ -157,44 +157,44 @@ migs <- as.data.frame(migs)
 tic()
 for (i in 1:STEPS){
   ## This generates an ID column for the rows/columsn of the leslie matrix.
-   for(this.prob in c("p5", "p50", "p95")){
-   
-    ## Pulling inthe CCrs and generating the row/column location for all CCRs.
-    ## This also makes sure the open ended interval is 'bent up'
-    ccrs <- BACCRreduce1[which(BACCRreduce1$step==i &
-                                 BACCRreduce1$prob2 == this.prob),] %>%
-      group_by(GEOID) %>%
-      mutate(AGE2 = row_number()) %>%
-      left_join(.,rowws %>% dplyr::select(GEOID, identc)) %>%
-      mutate(rowws = ifelse(AGE == 18, (identc-1)*36+AGE2,(identc-1)*36+AGE2+1),
-             colss = (identc-1)*36+AGE2) %>%
-      ungroup()
-    ## With the CCR locs, we just select those values.
-    ccrs <- ccrs %>% dplyr::select(rowws, colss, val = mean_in)
-    
-    ## Doing the same thing with the CCRs but with the CWRs.
-    cwrs <-   BACCRreduce1[which(BACCRreduce1$step==i &
-                                   BACCRreduce1$prob2 == this.prob),]  %>%
-      group_by(GEOID) %>%
-      mutate(AGE2 = row_number()) %>%
-      left_join(.,rowws %>% dplyr::select(GEOID, identc)) %>%
-      ungroup() %>%
-      mutate(colss = identc*18+AGE+(18*(identc-1)))
-    cwrs <- cbind(cwrs, rowws=sort(rep(seq(1,nrow(cwrs), 18), 18)))
-    
-    cwrs <- cwrs %>% dplyr::select(rowws, colss, val = cwr) %>%
-      filter(val >0)
-    
-    # 'Stacking' the CCR and CWR locs on top of each other.
-    ccrs <- rbind(ccrs, cwrs)
-  
-    ## Generating a Sparse Matrix using the locations.
-    z<-sparseMatrix(ccrs$rowws, 
-             ccrs$colss, 
-             x = as.numeric(ccrs$val))
-    assign(paste0("S",i,this.prob), z)
-    # writeMM(get(paste0("S",i, this.prob)), file = paste0("./R/DATA-PROCESSED/MATRICES/S",i,this.prob,".mtx" ))
-}
+#    for(this.prob in c("p5", "p50", "p95")){
+#    
+#     ## Pulling inthe CCrs and generating the row/column location for all CCRs.
+#     ## This also makes sure the open ended interval is 'bent up'
+#     ccrs <- BACCRreduce1[which(BACCRreduce1$step==i &
+#                                  BACCRreduce1$prob2 == this.prob),] %>%
+#       group_by(GEOID) %>%
+#       mutate(AGE2 = row_number()) %>%
+#       left_join(.,rowws %>% dplyr::select(GEOID, identc)) %>%
+#       mutate(rowws = ifelse(AGE == 18, (identc-1)*36+AGE2,(identc-1)*36+AGE2+1),
+#              colss = (identc-1)*36+AGE2) %>%
+#       ungroup()
+#     ## With the CCR locs, we just select those values.
+#     ccrs <- ccrs %>% dplyr::select(rowws, colss, val = mean_in)
+#     
+#     ## Doing the same thing with the CCRs but with the CWRs.
+#     cwrs <-   BACCRreduce1[which(BACCRreduce1$step==i &
+#                                    BACCRreduce1$prob2 == this.prob),]  %>%
+#       group_by(GEOID) %>%
+#       mutate(AGE2 = row_number()) %>%
+#       left_join(.,rowws %>% dplyr::select(GEOID, identc)) %>%
+#       ungroup() %>%
+#       mutate(colss = identc*18+AGE+(18*(identc-1)))
+#     cwrs <- cbind(cwrs, rowws=sort(rep(seq(1,nrow(cwrs), 18), 18)))
+#     
+#     cwrs <- cwrs %>% dplyr::select(rowws, colss, val = cwr) %>%
+#       filter(val >0)
+#     
+#     # 'Stacking' the CCR and CWR locs on top of each other.
+#     ccrs <- rbind(ccrs, cwrs)
+#   
+#     ## Generating a Sparse Matrix using the locations.
+#     z<-sparseMatrix(ccrs$rowws, 
+#              ccrs$colss, 
+#              x = as.numeric(ccrs$val))
+#     assign(paste0("S",i,this.prob), z)
+#     # writeMM(get(paste0("S",i, this.prob)), file = paste0("./R/DATA-PROCESSED/MATRICES/S",i,this.prob,".mtx" ))
+# }
     # Getting the Migration data for the M matrix.
       migs2 <- migs[which(migs$step == i & migs$destination %in% substr(x,1,5)),] %>%
       # filter(#origin!=destination,
@@ -226,8 +226,10 @@ for (i in 1:STEPS){
                         destination = toymodel) %>%
       mutate(identc = row_number(),
              identr = row_number())
+    for(this.prob in c("p5", "p50", "p95")){
 
-    ccrs2 <- BACCRreduce[which(BACCRreduce$step==i),] %>%
+    ccrs2 <-BACCRreduce1[which(BACCRreduce1$step==i &
+                                 BACCRreduce1$prob2 == this.prob),] %>%
       dplyr::select(SEX, step, AGE, GEOID, COUNTYRACE, reduce_in) %>%
       left_join(., migs2) %>%
       mutate(migrate = (1-reduce_in)*freq,
@@ -248,14 +250,20 @@ for (i in 1:STEPS){
                         ccrs2$colss, 
                         x = ccrs2$migrate)
     # write.excel(as.matrix(migmatr[1:72,1:72]))
+   assign(paste0("S",i,this.prob), readMM(paste0("./R/DATA-PROCESSED/MATRICES/S",i,this.prob,".mtx")))
+   assign(paste0("MS",i, this.prob),  migmatr %*% get(paste0("S",i,this.prob)))
+   # assign(paste0("S",i,"p50"), readMM(paste0("./R/DATA-PROCESSED/MATRICES/S",i,"p50.mtx")))
+   # assign(paste0("S",i,"p95"), readMM(paste0("./R/DATA-PROCESSED/MATRICES/S",i,"p95.mtx")))
     
-
-    
-  assign(paste0("MS",i, "p5"),  migmatr %*% get(paste0("S",i,"p5")))
-  assign(paste0("MS",i, "p50"), migmatr %*% get(paste0("S",i,"p50")))
-  assign(paste0("MS",i, "p95"), migmatr %*% get(paste0("S",i,"p95")))
-  writeMM(get(paste0("MS",i,"p5")),  file = paste0("./R/DATA-PROCESSED/MATRICES/MS",i,"p5.mtx" ))
-  writeMM(get(paste0("MS",i,"p50")), file = paste0("./R/DATA-PROCESSED/MATRICES/MS",i,"p50.mtx" ))
-  writeMM(get(paste0("MS",i,"p95")), file = paste0("./R/DATA-PROCESSED/MATRICES/MS",i,"p95.mtx" ))
+  # assign(paste0("MS",i, "p5"),  migmatr %*% get(paste0("S",i,"p5")))
+  # assign(paste0("MS",i, "p50"), migmatr %*% get(paste0("S",i,"p50")))
+  # assign(paste0("MS",i, "p95"), migmatr %*% get(paste0("S",i,"p95")))
+   # assign(paste0("MS",i, "p5"),  migmatr %*% get(paste0("S",i,"p5")))
+   # assign(paste0("MS",i, "p50"), migmatr %*% get(paste0("S",i,"p50")))
+   # assign(paste0("MS",i, "p95"), migmatr %*% get(paste0("S",i,"p95")))
+  writeMM(get(paste0("MS",i,this.prob)),  file = paste0("./R/DATA-PROCESSED/MATRICES/MS",i,this.prob,".mtx" ))
+  # writeMM(get(paste0("MS",i,"p50")), file = paste0("./R/DATA-PROCESSED/MATRICES/MS",i,"p50.mtx" ))
+  # writeMM(get(paste0("MS",i,"p95")), file = paste0("./R/DATA-PROCESSED/MATRICES/MS",i,"p95.mtx" ))
+    }
 }
 toc()

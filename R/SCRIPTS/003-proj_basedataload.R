@@ -7,7 +7,7 @@
 GROUPING <- c("STATE", "COUNTY", "YEAR", "AGE", "SEX")
 
 # TEST YEAR IS SET TO 2020
-test_year = 2019
+test_year = 2015
 
 # LAUNCH YEAR IS THE SAME AS THE TEST YEAR
 launch_year = test_year
