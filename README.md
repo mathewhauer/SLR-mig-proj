@@ -14,6 +14,7 @@ Here we provide the data and code for:  **Climate Migration Amplifies Demographi
 
 # Organization
 - `R` contains the R scripts and most of the data needed to reproduce the analysis
+- `MainDocument` contains the final figures
 
 
 # Use

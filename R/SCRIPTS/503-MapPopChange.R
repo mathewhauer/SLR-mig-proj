@@ -5,16 +5,23 @@ projsums<-read_csv("./R/DATA-PROCESSED/PROJECTIONS/projections_TOT_controlled_MS
   # mutate(rel = diff / SSP2_BASE) %>%
   left_join(., fipslist) %>%
   mutate(#displaced = (1-Inundated)* SSP2_BASE,
-         absdiff = ifelse( abs(SSP2_MIG - SSP2_BASE)<1, 
+         absdiffmig = ifelse( abs(SSP2_MIG - SSP2_BASE)<1, 
                            NA,
                            SSP2_MIG - SSP2_BASE),
+         absdiffdisp = ifelse(abs(SSP2_inun - SSP2_BASE)<1,
+                              NA,
+                              SSP2_inun - SSP2_BASE),
+         absdiffdisp = ifelse(!is.na(absdiffmig) & is.na(absdiffdisp),
+                       0,
+                       absdiffdisp),
+         diff = absdiffmig - absdiffdisp,
          GEOID = case_when(
            GEOID == "46113" ~ "46102",
            TRUE ~ GEOID
          )) %>%
   filter(YEAR == 2100,
          prob == "p50") %>%
-  dplyr::select(YEAR, GEOID, absdiff)
+  dplyr::select(YEAR, GEOID, absdiffmig, absdiffdisp, diff)
 
 mapdat <- get_acs("county",
                   "B19013_001",
@@ -33,7 +40,7 @@ breaksrel <- c(-Inf, -250000, -100000, -50000, -10000, 0, 10000, 100000, 500000,
 labels1 <-  c("< -250K", "-249K to -100K", "-99K to -50K", "-49K to -10K", "-10K to 0",
               "0 to 10K", "11K to 100K", "101K to 500K", "500K+")
 projsums$groups_dif <- factor(
-  cut(projsums$absdiff, breaksrel),
+  cut(projsums$absdiffmig, breaksrel),
   labels = labels1)
 
 pal <- c("#d73027", "#f46d43", "#fdae61", "#fee090", "#ffffd4", #  "#ffffff", 
@@ -44,7 +51,7 @@ pal <- c("#d73027", "#f46d43", "#fdae61", "#fee090", "#ffffd4", #  "#ffffff",
 
 
 a<- tm_shape(mapdat) +
-  tm_polygons("absdiff",
+  tm_polygons("absdiffmig",
               title = "",
               # midpoint = 0,
               showNA = FALSE,
@@ -62,14 +69,73 @@ a<- tm_shape(mapdat) +
   tm_borders(lwd=1, col="black", alpha = 0.5) +
   tm_layout(legend.position = c("right", "bottom"),
             legend.title.size = 0.6,
-           # main.title = "\u0394 Median Age in 2100",
+            main.title = "(b) Amplification",
             legend.width = 0.52,
             legend.stack = "horizontal",
             #  legend.outside =TRUE,
             # legend.outside.position = "bottom",
             legend.text.size = 0.6,
             frame = F)
+
+b <- tm_shape(mapdat) +
+  tm_polygons("absdiffdisp",
+              title = "",
+              # midpoint = 0,
+              showNA = FALSE,
+              colorNA ="white",
+              textNA = "NA",
+              border.alpha =0.5,
+              breaks= breaksrel,
+              palette = pal,
+              legend.is.portrait = F,
+              labels = labels1
+              # style ="fisher",
+              # n = 8
+  ) +
+  tm_shape(states) +
+  tm_borders(lwd=1, col="black", alpha = 0.5) +
+  tm_layout(legend.position = c("right", "bottom"),
+            legend.title.size = 0.6,
+            main.title = "(a) Displacement",
+            legend.width = 0.52,
+            legend.stack = "horizontal",
+            #  legend.outside =TRUE,
+            # legend.outside.position = "bottom",
+            legend.text.size = 0.6,
+            frame = F)+
+  tm_legend(show=FALSE)
+
+c <- tm_shape(mapdat) +
+  tm_polygons("diff",
+              title = "",
+              # midpoint = 0,
+              showNA = FALSE,
+              colorNA ="white",
+              textNA = "NA",
+              border.alpha =0.5,
+              breaks= breaksrel,
+              palette = pal,
+              legend.is.portrait = F,
+              labels = labels1
+              # style ="fisher",
+              # n = 8
+  ) +
+  tm_shape(states) +
+  tm_borders(lwd=1, col="black", alpha = 0.5) +
+  tm_layout(legend.position = c("right", "bottom"),
+            legend.title.size = 0.6,
+            main.title = "Difference",
+            legend.width = 0.52,
+            legend.stack = "horizontal",
+            #  legend.outside =TRUE,
+            # legend.outside.position = "bottom",
+            legend.text.size = 0.6,
+            frame = F) +
+  tm_legend(show=FALSE)
+
+maps <- tmap_arrange(b, a, ncol=1)
+
 # cairo_pdf("./MANUSCRIPT/MainDocument/FigMedAgeMap2.pdf", width = 7,
 #           height = 5)
-tmap_save(a, "./MANUSCRIPT/MainDocument/FigMedAgeMap3.pdf", width = 7,
-          height = 5)
+tmap_save(maps, "./MainDocument/FigMedAgeMaptest.pdf", width = 13,
+          height = 20)

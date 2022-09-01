@@ -54,7 +54,7 @@ K05_tot$GEOID <- paste0(K05_tot$STATE, K05_tot$COUNTY) # SETTING THE 5-DIGIT FIP
 # Getting a unique list of counties to loop over.
 cnties <- unique(K05_pop$GEOID)
 df <- data.frame() # the blank data frame to hold the results
-sigma <-4 # We set this threshold for our outliers
+sigma <-5 # We set this threshold for our outliers
 
 ### This will loop over each of the counties and search for outliers based on sigma.
 for(this.county in cnties){
