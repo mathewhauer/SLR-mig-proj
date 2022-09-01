@@ -1,7 +1,7 @@
-# PAPER TITLE
+# Climate Migration Amplifies Demographic Change and Population Aging
 
 # Introduction
-Here we provide the data and code for:  [**Climate Migration Amplifies Demographic Change and Population Aging**](https://github.com/mathewhauer/SLR-mig-proj/blob/master/MainDocument/MainDocument.pdf)
+Here we provide the data and code for:  **Climate Migration Amplifies Demographic Change and Population Aging**
 
 # Citation
 
@@ -10,7 +10,10 @@ Here we provide the data and code for:  [**Climate Migration Amplifies Demograph
 
 
 # Abstract
-> The warnings of potential climate migration first appeared in the scientific literature in the late 1970s when increased recognition that disintegrating ice sheets could drive people to migrate from coastal cities. Since that time, scientists have modelled potential climate migration without integrating other population processes, potentially obscuring the demographic amplification of this migration. Climate migration could amplify demographic change -- enhancing migration to destinations and suppressing migration to origins. Additionally, older populations are the least likely to migrate and climate migration could accelerate population aging in origin areas. Here, we investigate climate migration under sea-level rise (SLR), a single climatic hazard, and examine both the potential demographic amplification effect and population aging by combining matrix population models, flood hazard models, and a migration model built on 40 years of environmental migration in the US to project the US population distribution of US counties. We find that the demographic amplification of SLR for all feasible RCP-SSP scenarios in 2100 ranges between 8.6M - 28M [5.7M - 53M] -- 5.3 to 18 times the number of migrants (0.4M - 10M). We also project a significant aging of coastal areas as youthful populations migrate but older populations remain, accelerating population aging in origin areas. Furthermore, our population projection approach can be easily adapted to investigate additional or multiple climate hazards.
+> The warnings of potential climate migration first appeared in the scientific literature in the late 1970s when increased recognition that disintegrating ice sheets could drive people to migrate from coastal cities. Since that time, scientists have modelled potential climate migration without integrating other population processes, potentially obscuring the demographic amplification of this migration. Climate migration could amplify demographic change -- enhancing migration to destinations and suppressing migration to origins. Additionally, older populations are the least likely to migrate and climate migration could accelerate population aging in origin areas. Here, we investigate climate migration under sea-level rise (SLR), a single climatic hazard, and examine both the potential demographic amplification effect and population aging by combining matrix population models, flood hazard models, and a migration model built on 40 years of environmental migration in the US to project the US population distribution of US counties. We find that the demographic amplification of SLR for all feasible RCP-SSP scenarios in 2100 ranges between 8.6M - 28M [5.7M - 53M] --  5.3 - 18 times the number of migrants (0.4M - 10M). We also project a significant aging of coastal areas as youthful populations migrate but older populations remain, accelerating population aging in origin areas. As the percentage of the population lost due to climate migration increases, the median age also increases -- up to 10+ years older in some highly impacted coastal counties. Additionally, our population projection approach can be easily adapted to investigate additional or multiple climate hazards.
+
+# Organization
+- `R` contains the R scripts and most of the data needed to reproduce the analysis
 
 
 # Use
