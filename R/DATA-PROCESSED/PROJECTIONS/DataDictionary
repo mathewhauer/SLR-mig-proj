@@ -1,0 +1,17 @@
+Data Dictionary.
+
+Year = the year for the projections.
+
+SEX
+- 1 == Male
+- 2 == Female
+
+GEOID = The standard 5-digit FIPS code.
+
+AGE = 1-18, in 5-year age increments. (1 = 0-4, 2 = 5-9, ..., 18 = 85+)
+
+prob = p5, p50, p95 = the uncertainty intervals in the sea-level rise projections.
+
+SSP1_BASE:SSP5_BASE = the population values under the 5 SSPs in a climate agnostic future.
+
+SSP1_MIG:SSP5_MIG = the population values under the 5 SSPs incorporating sea-level rise driven human migration.
