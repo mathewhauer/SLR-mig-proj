@@ -82,10 +82,7 @@ pkgs <- c(
 # Will only run if at least one package is missing
 
 if(!sum(!p_isinstalled(pkgs))==0){
-  p_install(
-    package = pkgs[!p_isinstalled(pkgs)], 
-    character.only = TRUE
-  )
+  install.packages( pkgs[!p_isinstalled(pkgs)])
 }
 
 # load the packages
